@@ -1,4 +1,4 @@
-# CIPA | APQP — Scénario de démonstration
+# Projet TTEI — Scénario de démonstration
 
 > Prototype front-end de pilotage de projets APQP automobile.
 > Aucun backend, aucune base de données, aucune API : toutes les données sont
