@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Surfaces — the app runs on white, cards are outlined rather than raised */
+    --background: 0 0% 100%;
+    --foreground: 220 43% 11%; /* #101828 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 43% 11%;
+
+    /* Brand — burnt bronze for primary actions */
+    --primary: 30 90% 37%; /* #B45F09 */
+    --primary-foreground: 0 0% 100%;
+
+    --muted: 210 20% 97%;
+    --muted-foreground: 221 13% 46%; /* #667085 */
+
+    --accent: 34 100% 96%; /* active nav wash */
+    --accent-foreground: 30 88% 40%;
+
+    --destructive: 4 74% 49%; /* #D92D20 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 16% 93%; /* #EAECF0 */
+    --input: 220 16% 90%;
+    --ring: 33 92% 47%;
+
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1,
+      "cv02" 1,
+      "cv03" 1,
+      "cv04" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
