@@ -88,4 +88,4 @@ src/
 Prototype de démonstration : aucune persistance (un rafraîchissement remet tout
 à zéro), les formulaires sont éditables mais rien n'est enregistré, les rôles
 affichés ne sont pas appliqués, et certains onglets et boutons secondaires sont
-décoratifs. Le détail figure dans [SCENARIO.md](SCENARIO.md#6-ce-que-la-démonstration-ne-fait-pas).
+décoratifs.
