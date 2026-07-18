@@ -50,6 +50,17 @@
 }
 
 @layer utilities {
+  /* Champs date : on masque l'indicateur natif du navigateur, l'icône calendrier
+     du design ouvre le sélecteur via showPicker(). */
+  .date-field::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    cursor: pointer;
+  }
+  .date-field::-webkit-inner-spin-button,
+  .date-field::-webkit-clear-button {
+    display: none;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;

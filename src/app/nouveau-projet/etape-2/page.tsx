@@ -24,8 +24,8 @@ import {
   Button,
   Card,
   Chip,
+  DateInput,
   Dot,
-  Input,
   Panel,
   Select,
 } from "@/components/ui/primitives";
@@ -59,10 +59,10 @@ export default function Etape2Page() {
           >
             <div className="space-y-2.5">
               <FieldRow icon={<CalendarDays className="h-3.5 w-3.5" />} label="Kickoff">
-                <Input defaultValue={NEW_PROJECT.kickoff} />
+                <DateInput defaultValue={NEW_PROJECT.kickoff} />
               </FieldRow>
               <FieldRow icon={<Target className="h-3.5 w-3.5" />} label="SOP cible">
-                <Input defaultValue={NEW_PROJECT.sop} />
+                <DateInput defaultValue={NEW_PROJECT.sop} />
               </FieldRow>
               <FieldRow icon={<CalendarDays className="h-3.5 w-3.5" />} label="Calendrier">
                 <Select defaultValue={NEW_PROJECT.calendar}>

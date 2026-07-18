@@ -26,6 +26,7 @@ import {
   Button,
   Card,
   Chip,
+  DateInput,
   Dot,
   Field,
   Input,
@@ -112,10 +113,7 @@ export function AddMilestoneModal({
             </div>
           </Field>
           <Field label="Date cible">
-            <div className="relative">
-              <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input defaultValue="18/01/2027" className="pl-8" />
-            </div>
+            <DateInput defaultValue="18/01/2027" />
           </Field>
           <Field label="Position dans le WBS">
             <Input defaultValue="Entre T09 et T10" />
@@ -233,16 +231,10 @@ export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => 
               <Input defaultValue="16" />
             </Field>
             <Field label="Date de début" required>
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input defaultValue="12/01/2027" className="pl-8" />
-              </div>
+              <DateInput defaultValue="12/01/2027" />
             </Field>
             <Field label="Date de fin prévue" required>
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input defaultValue="19/01/2027" className="pl-8" />
-              </div>
+              <DateInput defaultValue="19/01/2027" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -356,16 +348,10 @@ export function AddSubtaskModal({ open, onClose }: { open: boolean; onClose: () 
               </Select>
             </Field>
             <Field label="Date de début">
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input defaultValue="13/01/2027" className="pl-8" />
-              </div>
+              <DateInput defaultValue="13/01/2027" />
             </Field>
             <Field label="Date de fin prévue">
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input defaultValue="18/01/2027" className="pl-8" />
-              </div>
+              <DateInput defaultValue="18/01/2027" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">

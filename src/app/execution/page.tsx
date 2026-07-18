@@ -29,6 +29,7 @@ import {
   Button,
   Card,
   Chip,
+  DateInput,
   Dot,
   Field,
   Input,
@@ -151,10 +152,7 @@ export default function ExecutionPage() {
                 </Field>
 
                 <Field label="Date cible">
-                  <div className="relative">
-                    <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <Input defaultValue={CONTRIBUTION.dueDate} className="pl-8" />
-                  </div>
+                  <DateInput defaultValue={CONTRIBUTION.dueDate} />
                 </Field>
                 <Field label="Commentaire d'exécution">
                   <Textarea rows={2} defaultValue={CONTRIBUTION.comment} />

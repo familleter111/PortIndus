@@ -220,6 +220,64 @@ export function Input({
   return <input className={cn(CONTROL, className)} {...props} />;
 }
 
+/** "12/01/2027" → "2027-01-12" (format attendu par `input[type=date]`). */
+function frToIso(value: string): string {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : value;
+}
+
+/**
+ * Champ date : ouvre le calendrier natif du navigateur. La valeur est fournie
+ * au format français, la conversion ISO est faite ici.
+ */
+export function DateInput({
+  defaultValue,
+  className,
+  ...props
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "defaultValue"> & {
+  defaultValue?: string;
+}) {
+  const ref = React.useRef<HTMLInputElement>(null);
+
+  const openPicker = () => {
+    const el = ref.current;
+    if (!el) return;
+    // showPicker() n'est pas universel : on retombe sur le focus si absent.
+    if (typeof el.showPicker === "function") {
+      try {
+        el.showPicker();
+        return;
+      } catch {
+        /* certains navigateurs refusent hors interaction directe */
+      }
+    }
+    el.focus();
+  };
+
+  return (
+    <span className="relative block">
+      <button
+        type="button"
+        onClick={openPicker}
+        aria-label="Ouvrir le calendrier"
+        className="absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground transition-colors hover:text-[#B45F09]"
+      >
+        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+        </svg>
+      </button>
+      <input
+        ref={ref}
+        type="date"
+        defaultValue={defaultValue ? frToIso(defaultValue) : undefined}
+        className={cn(CONTROL, "date-field cursor-pointer pl-9", className)}
+        {...props}
+      />
+    </span>
+  );
+}
+
 export function Select({
   className,
   children,
