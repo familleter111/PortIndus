@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   BarChart3,
   Bell,
+  BookOpen,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -22,6 +23,9 @@ import {
   UserRound,
 } from "lucide-react";
 
+import { useScenario } from "@/components/layout/scenario-context";
+import { Markdown } from "@/components/shared/markdown";
+import { Modal } from "@/components/ui/primitives";
 import { STATUS_DATE } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +64,8 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
+  const [scenarioOpen, setScenarioOpen] = React.useState(false);
+  const scenario = useScenario();
   /** The portfolio is the entry point: nothing to go back to. */
   const isHome = pathname === "/portefeuille";
 
@@ -79,16 +85,23 @@ export function AppShell({
           )}
         >
           {!collapsed ? (
-            <Link href="/portefeuille" className="min-w-0 flex-1" aria-label="TTE International">
+            // Double-clic sur le logo : ouvre le scénario de démonstration.
+            <button
+              type="button"
+              onDoubleClick={() => setScenarioOpen(true)}
+              title="Double-cliquez pour ouvrir le scénario de démonstration"
+              aria-label="TTE International — double-cliquez pour ouvrir le scénario"
+              className="min-w-0 flex-1 cursor-pointer text-left"
+            >
               <Image
                 src="/ttei.jpg"
                 alt="TTE International — A Onetech company"
                 width={300}
                 height={175}
                 priority
-                className="h-auto w-[132px] object-contain"
+                className="h-auto w-[132px] select-none object-contain"
               />
-            </Link>
+            </button>
           ) : null}
           <button
             type="button"
@@ -228,6 +241,21 @@ export function AppShell({
         {/* The page owns its height: nothing here scrolls vertically. */}
         <main className="min-h-0 flex-1 overflow-hidden px-6 py-4">{children}</main>
       </div>
+
+      <Modal
+        open={scenarioOpen}
+        onClose={() => setScenarioOpen(false)}
+        width="max-w-4xl"
+        title="Scénario de démonstration"
+        subtitle="SCENARIO.md — parcours complet de l'application"
+        icon={
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FDF4E7]">
+            <BookOpen className="h-5 w-5 text-[#B45F09]" />
+          </span>
+        }
+      >
+        <Markdown source={scenario} />
+      </Modal>
     </div>
   );
 }
