@@ -85,13 +85,21 @@ export function AppShell({
           )}
         >
           {!collapsed ? (
-            // Double-clic sur le logo : ouvre le scénario de démonstration.
+            // Le double-clic ouvre le scénario, mais uniquement sur l'accueil.
             <button
               type="button"
-              onDoubleClick={() => setScenarioOpen(true)}
-              title="Double-cliquez pour ouvrir le scénario de démonstration"
-              aria-label="TTE International — double-cliquez pour ouvrir le scénario"
-              className="min-w-0 flex-1 cursor-pointer text-left"
+              onDoubleClick={isHome ? () => setScenarioOpen(true) : undefined}
+              title={
+                isHome
+                  ? "Double-cliquez pour ouvrir le scénario de démonstration"
+                  : "TTE International"
+              }
+              aria-label={
+                isHome
+                  ? "TTE International — double-cliquez pour ouvrir le scénario"
+                  : "TTE International"
+              }
+              className={cn("min-w-0 flex-1 text-left", isHome ? "cursor-pointer" : "cursor-default")}
             >
               <Image
                 src="/ttei.jpg"
@@ -243,7 +251,7 @@ export function AppShell({
       </div>
 
       <Modal
-        open={scenarioOpen}
+        open={isHome && scenarioOpen}
         onClose={() => setScenarioOpen(false)}
         width="max-w-4xl"
         title="Scénario de démonstration"
