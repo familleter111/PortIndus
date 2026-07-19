@@ -618,6 +618,12 @@ export interface LoadPilot {
   projects: number;
   /** Charge mensuelle en % de capacité ; `null` = aucune activité planifiée. */
   values: (number | null)[];
+  /** Clients dont le pilote porte au moins un projet — sert aux filtres. */
+  clients: string[];
+  /** Santé la plus dégradée parmi ses projets. */
+  health: Health;
+  /** Phases APQP sur lesquelles il est engagé. */
+  phases: string[];
 }
 
 export interface LoadService {
@@ -635,8 +641,11 @@ export const SERVICE_LOAD: LoadService[] = [
     values: [42, 29, 31, 35, 55, 30, 32, 12, 34, n, 23, 26, 16, 7, n, 3, 9, 14, 1],
     members: [
       { name: "Leïla Mansour", initials: "LM", color: "#B45F09", projects: 9,
+        clients: ["OEM Alpha", "OEM Gamma"], health: "orange",
+        phases: ["Product Design", "Process Design"],
         values: [58, 31, 44, 40, 72, 33, 41, 12, 47, n, 30, 35, 22, 9, n, 4, 12, 19, 1] },
       { name: "Hatem Ben Ali", initials: "HB", color: "#3976D3", projects: 5,
+        clients: ["OEM Beta"], health: "green", phases: ["Validation"],
         values: [26, 27, 18, 30, 38, 27, 23, 12, 21, n, 16, 17, 10, 5, n, 2, 6, 9, 1] },
     ],
   },
@@ -645,8 +654,11 @@ export const SERVICE_LOAD: LoadService[] = [
     values: [161, 88, 74, 101, 47, 35, 54, 41, 7, n, n, n, n, n, n, n, n, n, n],
     members: [
       { name: "Rim Bouazizi", initials: "RB", color: "#E58A00", projects: 6,
+        clients: ["OEM Alpha", "OEM Gamma"], health: "red",
+        phases: ["Product Design", "Process Design"],
         values: [188, 96, 81, 118, 52, 38, 61, 44, 8, n, n, n, n, n, n, n, n, n, n] },
       { name: "Anis Gharbi", initials: "AG", color: "#0891B2", projects: 4,
+        clients: ["OEM Beta"], health: "green", phases: ["Product Design"],
         values: [134, 80, 67, 84, 42, 32, 47, 38, 6, n, n, n, n, n, n, n, n, n, n] },
     ],
   },
@@ -655,8 +667,11 @@ export const SERVICE_LOAD: LoadService[] = [
     values: [144, 119, 143, 162, 138, 126, 106, 88, 50, 87, 96, 41, 20, 12, 19, 20, 30, 2, n],
     members: [
       { name: "Noura Trabelsi", initials: "NT", color: "#D92D20", projects: 8,
+        clients: ["OEM Alpha", "OEM Beta", "OEM Gamma"], health: "red",
+        phases: ["Process Design", "Validation"],
         values: [176, 141, 174, 198, 163, 149, 121, 96, 55, 99, 112, 47, 22, 13, 21, 23, 34, 2, n] },
       { name: "Ines Chaabane", initials: "IC", color: "#7C3AED", projects: 5,
+        clients: ["OEM Beta"], health: "orange", phases: ["Validation"],
         values: [112, 97, 112, 126, 113, 103, 91, 80, 45, 75, 80, 35, 18, 11, 17, 17, 26, 2, n] },
     ],
   },
@@ -665,8 +680,10 @@ export const SERVICE_LOAD: LoadService[] = [
     values: [211, 178, 156, 181, 165, 132, 121, 64, 67, 52, 37, 24, n, n, n, n, n, n, n],
     members: [
       { name: "Karim Belhadj", initials: "KB", color: "#2E7D32", projects: 7,
+        clients: ["OEM Alpha", "OEM Gamma"], health: "red", phases: ["Process Design"],
         values: [244, 201, 172, 205, 186, 148, 139, 71, 76, 58, 41, 27, n, n, n, n, n, n, n] },
       { name: "Youssef Jaziri", initials: "YJ", color: "#3976D3", projects: 6,
+        clients: ["OEM Alpha"], health: "orange", phases: ["Process Design", "Validation"],
         values: [178, 155, 140, 157, 144, 116, 103, 57, 58, 46, 33, 21, n, n, n, n, n, n, n] },
     ],
   },
@@ -675,10 +692,14 @@ export const SERVICE_LOAD: LoadService[] = [
     values: [47, 55, 86, 46, 23, 79, 11, 32, 103, 13, 19, n, 25, 28, 12, n, n, n, n],
     members: [
       { name: "Meriem Khelifi", initials: "MK", color: "#475467", projects: 7,
+        clients: ["OEM Alpha", "OEM Beta"], health: "orange", phases: ["Validation"],
         values: [77, n, n, 42, 37, n, 12, 96, 169, 15, n, n, 76, n, n, n, n, n, n] },
       { name: "Slim Toumi", initials: "ST", color: "#E58A00", projects: 8,
+        clients: ["OEM Beta", "OEM Gamma"], health: "red",
+        phases: ["Process Design", "Validation"],
         values: [20, 147, 53, 97, 17, 109, 22, n, 140, 23, 57, n, n, n, n, n, n, n, n] },
       { name: "Dorra Ben Amor", initials: "DA", color: "#2E7D32", projects: 6,
+        clients: ["OEM Gamma"], health: "green", phases: ["Product Design"],
         values: [43, 19, 206, n, 13, 127, n, n, n, n, n, n, n, n, 85, 36, n, n, n] },
     ],
   },
@@ -692,6 +713,28 @@ export const SERVICE_LOAD: LoadService[] = [
     values: [n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n],
     members: [],
   },
+];
+
+/**
+ * Référentiels des filtres de la page charge. Le `dot` est la pastille de
+ * couleur affichée devant l'option dans le menu déroulant.
+ */
+export const LOAD_CLIENTS = ["OEM Alpha", "OEM Beta", "OEM Gamma"];
+export const LOAD_PHASES = ["Product Design", "Process Design", "Validation"];
+export const LOAD_HEALTH: { value: Health; label: string; dot: string }[] = [
+  { value: "green", label: "Vert", dot: "#2E7D32" },
+  { value: "orange", label: "Ambre", dot: "#E58A00" },
+  { value: "red", label: "Rouge", dot: "#D92D20" },
+];
+/**
+ * Niveaux de charge — mêmes seuils que la heatmap. Le critère porte sur les
+ * mois traversés, pas sur le seul pic : aucun pilote ne culmine entre 96 et
+ * 110 %, mais plusieurs y passent, et c'est cette tension-là qu'on cherche.
+ */
+export const LOAD_LEVELS: { value: string; label: string; short: string; dot: string }[] = [
+  { value: "over", label: "Un mois au-delà de 110 %", short: "Surcharge", dot: "#D92D20" },
+  { value: "tension", label: "Un mois de 96 à 110 %", short: "Tension", dot: "#E58A00" },
+  { value: "ok", label: "Jamais au-delà de 95 %", short: "Sous capacité", dot: "#2E7D32" },
 ];
 
 export const LOAD_KPIS = [
