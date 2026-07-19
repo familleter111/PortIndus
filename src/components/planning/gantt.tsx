@@ -14,7 +14,8 @@ import {
 
 /** Row geometry — shared with the WBS table so both stay aligned. */
 export const GANTT_ROW_H = 30;
-export const GANTT_HEAD_H = 48;
+/** Deux bandeaux : période au-dessus, graduations lisibles en dessous. */
+export const GANTT_HEAD_H = 54;
 
 const MS_DAY = 86_400_000;
 const TOTAL_DAYS = PLAN_WINDOW.weeks * 7;
@@ -352,9 +353,13 @@ export function GanttChart({
   const [linkDrag, setLinkDrag] = React.useState<{
     wbs: string;
     x0: number;
+    y0: number;
     base: number;
     delta: number;
+    /** Tant que le seuil n'est pas franchi, le geste reste un clic. */
+    moved: boolean;
   } | null>(null);
+  const [activeLink, setActiveLink] = React.useState<string | null>(null);
   const [hostW, setHostW] = React.useState(0);
   const bodyRef = React.useRef<HTMLDivElement>(null);
 
@@ -411,16 +416,28 @@ export function GanttChart({
     };
   }, [drag, dayW, onReschedule]);
 
-  // Glissement du coude d'un lien, pour le dégager d'un libellé.
+  /**
+   * Glissement du coude d'un lien. Le geste démarre sur n'importe quel point du
+   * trait : sous 4 px de déplacement c'est un clic, au-delà c'est un glissement.
+   */
   React.useEffect(() => {
     if (!linkDrag) return;
     const onMove = (e: MouseEvent) => {
       const delta = e.clientX - linkDrag.x0;
-      if (delta !== linkDrag.delta) setLinkDrag({ ...linkDrag, delta });
+      const moved =
+        linkDrag.moved || Math.abs(delta) > 4 || Math.abs(e.clientY - linkDrag.y0) > 4;
+      if (delta !== linkDrag.delta || moved !== linkDrag.moved) {
+        setLinkDrag({ ...linkDrag, delta, moved });
+      }
     };
-    const onUp = () => {
-      if (linkDrag.delta !== 0) {
+    const onUp = (e: MouseEvent) => {
+      if (linkDrag.moved) {
         onMoveLink(linkDrag.wbs, linkDrag.base + linkDrag.delta / dayW);
+      } else {
+        // Simple clic : on sélectionne le lien et on ouvre ses options.
+        setActiveLink(linkDrag.wbs);
+        const l = links.find((k) => k.key === linkDrag.wbs);
+        if (l) setMenu({ wbs: l.key, type: l.type, x: e.clientX, y: e.clientY });
       }
       setLinkDrag(null);
     };
@@ -430,7 +447,7 @@ export function GanttChart({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [linkDrag, dayW, onMoveLink]);
+  });
 
   const startDrag = (e: React.MouseEvent, row: PlanRow, mode: DragMode) => {
     e.preventDefault();
@@ -599,13 +616,15 @@ export function GanttChart({
                   <div
                     key={b.key}
                     className={`flex shrink-0 flex-col items-center justify-center overflow-hidden border-r border-border/50 leading-none tabular-nums last:border-r-0 ${
-                      b.off ? "bg-[#F9FAFB] text-[#B0B7C3]" : "text-muted-foreground"
+                      b.off ? "bg-[#F4F5F7] text-[#98A2B3]" : "text-[#475467]"
                     }`}
                     style={{ width: w }}
                   >
-                    {w > 18 ? <span className="text-[9px] font-medium">{b.label}</span> : null}
-                    {b.sub && w > 26 ? (
-                      <span className="mt-[2px] text-[8px] text-[#98A2B3]">{b.sub}</span>
+                    {w > 16 ? <span className="text-[10px] font-semibold">{b.label}</span> : null}
+                    {b.sub && w > 24 ? (
+                      <span className="mt-[3px] text-[9px] font-medium text-[#667085]">
+                        {b.sub}
+                      </span>
                     ) : null}
                   </div>
                 );
@@ -681,75 +700,67 @@ export function GanttChart({
                 const vTop = Math.min(l.y1, l.y2);
                 const vBottom = Math.max(l.y1, l.y2);
                 const dragging = linkDrag?.wbs === l.key;
+                const picked = activeLink === l.key || dragging;
+                const stroke = picked ? "#3976D3" : color;
+
+                const grab = (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setActiveLink(l.key);
+                  setLinkDrag({
+                    wbs: l.key,
+                    x0: e.clientX,
+                    y0: e.clientY,
+                    base: l.offsetDays,
+                    delta: 0,
+                    moved: false,
+                  });
+                };
+
                 return (
                   <g key={l.key} className="group/link" opacity={dim ? 0.15 : 1}>
-                    <circle cx={l.x1} cy={l.y1} r={2.5} fill={color} pointerEvents="none" />
+                    <circle cx={l.x1} cy={l.y1} r={2.5} fill={stroke} pointerEvents="none" />
                     <path
                       d={d}
                       fill="none"
-                      stroke={dragging ? "#3976D3" : color}
-                      strokeWidth={dragging ? 1.75 : 1.25}
+                      stroke={stroke}
+                      strokeWidth={picked ? 1.9 : 1.25}
                       strokeLinejoin="round"
                       pointerEvents="none"
                     />
-                    <polygon points={arrow} fill={color} pointerEvents="none" />
+                    <polygon points={arrow} fill={stroke} pointerEvents="none" />
 
-                    {/* Zone de clic élargie, invisible : ouvre le menu du lien */}
+                    {/* Toute la longueur du trait est saisissable : un clic
+                        ouvre les options, un glissement décale le coude. */}
                     <path
                       d={d}
                       fill="none"
                       stroke="transparent"
-                      strokeWidth={11}
-                      className="cursor-pointer"
+                      strokeWidth={12}
+                      className="cursor-ew-resize"
                       pointerEvents="stroke"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenu({ wbs: l.key, type: l.type, x: e.clientX, y: e.clientY });
-                      }}
+                      onMouseDown={grab}
                     >
-                      <title>{`Lien ${l.type} — cliquer pour modifier`}</title>
+                      <title>
+                        {`Lien ${l.type} — glisser pour déplacer, cliquer pour les options`}
+                      </title>
                     </path>
 
-                    {/* Poignée du coude : glisser à gauche ou à droite pour
-                        dégager le tracé d'un libellé. */}
+                    {/* Poignée du coude, visible dès que le lien est sélectionné */}
                     {vBottom - vTop > 6 ? (
-                      <>
-                        <line
-                          x1={l.mid}
-                          y1={vTop + 4}
-                          x2={l.mid}
-                          y2={vBottom - 4}
-                          stroke="#3976D3"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          pointerEvents="none"
-                          className={
-                            dragging ? "opacity-100" : "opacity-0 group-hover/link:opacity-60"
-                          }
-                        />
-                        <line
-                          x1={l.mid}
-                          y1={vTop}
-                          x2={l.mid}
-                          y2={vBottom}
-                          stroke="transparent"
-                          strokeWidth={12}
-                          pointerEvents="stroke"
-                          className="cursor-ew-resize"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setLinkDrag({
-                              wbs: l.key,
-                              x0: e.clientX,
-                              base: l.offsetDays,
-                              delta: 0,
-                            });
-                          }}
-                        >
-                          <title>Glisser pour décaler le tracé du lien</title>
-                        </line>
-                      </>
+                      <line
+                        x1={l.mid}
+                        y1={vTop + 3}
+                        x2={l.mid}
+                        y2={vBottom - 3}
+                        stroke="#3976D3"
+                        strokeWidth={3}
+                        strokeLinecap="round"
+                        pointerEvents="none"
+                        className={
+                          picked ? "opacity-100" : "opacity-0 group-hover/link:opacity-50"
+                        }
+                      />
                     ) : null}
                   </g>
                 );
@@ -812,7 +823,10 @@ export function GanttChart({
                   role="button"
                   tabIndex={0}
                   aria-pressed={active}
-                  onClick={() => onSelect(row.wbs)}
+                  onClick={() => {
+                    setActiveLink(null);
+                    onSelect(row.wbs);
+                  }}
                   onDoubleClick={(e) => onCreateAt(dateAt(e))}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -958,10 +972,15 @@ export function GanttChart({
                         e.stopPropagation();
                         setEditing(row.wbs);
                       }}
-                      className={`gantt-label absolute top-1/2 z-20 -translate-y-1/2 cursor-text whitespace-nowrap rounded px-1 text-[9px] leading-none ${
-                        labelRight ? "ml-1" : "-ml-1 -translate-x-full"
+                      className={`gantt-label absolute top-1/2 z-20 -translate-y-1/2 cursor-text whitespace-nowrap rounded-[3px] px-1 py-[2px] text-[9px] leading-none ${
+                        labelRight ? "ml-1.5" : "-ml-1.5 -translate-x-full"
                       }`}
-                      style={{ left: labelRight ? (row.milestone ? start + 8 : start + w) : start }}
+                      style={{
+                        left: labelRight ? (row.milestone ? start + 8 : start + w) : start,
+                        // Fond opaque assorti à la ligne : c'est lui qui garantit
+                        // qu'aucun trait de dépendance ne coupe le texte.
+                        backgroundColor: active ? "#FEF6E7" : "#FFFFFF",
+                      }}
                     >
                       <span className="font-semibold" style={{ color: tone.text }}>
                         {row.milestone ? row.gate : `${days} j`}
