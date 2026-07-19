@@ -265,6 +265,18 @@ export default function PlanningPage() {
   const linkRows = (from: string, to: string, type: DepType) =>
     patch(to, { dependsOn: from, depType: type });
 
+  /**
+   * Saisie d'un champ du bandeau d'édition. Le statut repasse par l'action
+   * dédiée pour garder le couplage statut / avancement.
+   */
+  const applyField = (wbs: string, next: Partial<PlanRow>) => {
+    if (next.status) {
+      onRowAction(wbs, { kind: "status", value: next.status });
+      return;
+    }
+    patch(wbs, next);
+  };
+
   const onRowAction = (wbs: string, action: RowAction) => {
     const row = rows.find((r) => r.wbs === wbs);
     if (!row) return;
@@ -552,6 +564,7 @@ export default function PlanningPage() {
                     : "toTask",
               )
             }
+            onField={(next) => applyField(selectedRow.wbs, next)}
           />
         ) : null}
 

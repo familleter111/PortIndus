@@ -33,12 +33,14 @@ export function ElementPopover({
   onDelete,
   onDuplicate,
   onShapeChange,
+  onField,
 }: {
   row: PlanRow;
   onClose: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onShapeChange: (shape: Shape) => void;
+  onField: (patch: Partial<PlanRow>) => void;
 }) {
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -81,7 +83,11 @@ export function ElementPopover({
       {/* Champs sur un rang, repliés seulement si la largeur manque */}
       <div className="flex flex-wrap items-end gap-2 px-3 py-2">
         <Cell label="Nom" className="min-w-[160px] flex-1">
-          <Input defaultValue={row.name} className={CTL} />
+          <Input
+            defaultValue={row.name}
+            onChange={(e) => onField({ name: e.target.value })}
+            className={CTL}
+          />
         </Cell>
 
         <Cell label="Forme">
@@ -104,7 +110,11 @@ export function ElementPopover({
         </Cell>
 
         <Cell label="Responsable" className="w-[124px]">
-          <Select defaultValue={row.owner} className={CTL}>
+          <Select
+            defaultValue={row.owner}
+            onChange={(e) => onField({ owner: e.target.value })}
+            className={CTL}
+          >
             {OWNERS.map((o) => (
               <option key={o}>{o}</option>
             ))}
@@ -112,16 +122,33 @@ export function ElementPopover({
         </Cell>
 
         <Cell label="Début" className="w-[118px]">
-          <DateInput defaultValue={fr(row.fStart)} className={CTL} />
+          <DateInput
+            defaultValue={fr(row.fStart)}
+            onChange={(e) => e.target.value && onField({ fStart: e.target.value })}
+            className={CTL}
+          />
         </Cell>
         <Cell label="Fin" className="w-[118px]">
-          <DateInput defaultValue={fr(row.fEnd)} className={CTL} />
+          <DateInput
+            defaultValue={fr(row.fEnd)}
+            onChange={(e) => e.target.value && onField({ fEnd: e.target.value })}
+            className={CTL}
+          />
         </Cell>
         <Cell label="Charge (h)" className="w-[70px]">
-          <Input type="number" defaultValue={row.load} className={CTL} />
+          <Input
+            type="number"
+            defaultValue={row.load}
+            onChange={(e) => onField({ load: Number(e.target.value) || 0 })}
+            className={CTL}
+          />
         </Cell>
         <Cell label="Statut" className="w-[108px]">
-          <Select defaultValue={row.status} className={CTL}>
+          <Select
+            defaultValue={row.status}
+            onChange={(e) => onField({ status: e.target.value as PlanRow["status"] })}
+            className={CTL}
+          >
             <option>Non démarré</option>
             <option>En cours</option>
             <option>En retard</option>
@@ -129,7 +156,11 @@ export function ElementPopover({
           </Select>
         </Cell>
         <Cell label="Criticité" className="w-[94px]">
-          <Select defaultValue={row.critical ? "Critique" : "Normale"} className={CTL}>
+          <Select
+            defaultValue={row.critical ? "Critique" : "Normale"}
+            onChange={(e) => onField({ critical: e.target.value === "Critique" })}
+            className={CTL}
+          >
             <option>Normale</option>
             <option>Critique</option>
           </Select>

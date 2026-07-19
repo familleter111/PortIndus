@@ -56,12 +56,12 @@ const OWNER_COLOR: Record<string, string> = {
   "Karim Belhadj": "#2E7D32",
 };
 
-/** Pastille de statut en tête de ligne, comme dans un planificateur. */
+/** Pastille de statut en tête de ligne — même règle que la couleur des barres. */
 function accentColor(r: PlanRow): string {
   if (r.summary) return "#344054";
-  if (r.progress >= 100) return "#2E7D32";
-  if (r.critical) return "#D92D20";
-  if (r.progress > 0) return "#E58A00";
+  if (r.status === "Terminé" || r.progress >= 100) return "#2E7D32";
+  if (r.critical || r.status === "En retard") return "#D92D20";
+  if (r.status === "En cours" || r.progress > 0) return "#E58A00";
   return "#D0D5DD";
 }
 

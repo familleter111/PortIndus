@@ -224,10 +224,17 @@ function headerFor(scale: Scale): { top: Band[]; ticks: Band[] } {
 /*  Barres et liens                                                            */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Couleur d'une barre. Le statut compte autant que l'avancement : « En retard »
+ * doit sortir en rouge, comme la pastille affichée dans les menus.
+ */
 function barTone(row: PlanRow) {
-  if (row.progress >= 100) return { track: "#D1FADF", fill: "#2E7D32", text: "#1B5E20" };
-  if (row.critical) return { track: "#FEE4E2", fill: "#D92D20", text: "#B42318" };
-  if (row.progress > 0) return { track: "#FDECD6", fill: "#E58A00", text: "#B45F09" };
+  if (row.status === "Terminé" || row.progress >= 100)
+    return { track: "#D1FADF", fill: "#2E7D32", text: "#1B5E20" };
+  if (row.critical || row.status === "En retard")
+    return { track: "#FEE4E2", fill: "#D92D20", text: "#B42318" };
+  if (row.status === "En cours" || row.progress > 0)
+    return { track: "#FDECD6", fill: "#E58A00", text: "#B45F09" };
   return { track: "#FFFFFF", fill: "#D0D5DD", text: "#667085" };
 }
 
@@ -952,7 +959,7 @@ export function GanttChart({
       {/* ------------------------------------------------------------ Légende */}
       <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-border py-1.5 text-[10px] text-muted-foreground">
         <Item swatch={<Swatch track="#FDECD6" fill="#E58A00" />} label="En cours" />
-        <Item swatch={<Swatch track="#FEE4E2" fill="#D92D20" />} label="Critique" />
+        <Item swatch={<Swatch track="#FEE4E2" fill="#D92D20" />} label="Critique / en retard" />
         <Item swatch={<Swatch track="#D1FADF" fill="#2E7D32" />} label="Terminé" />
         <Item swatch={<Swatch track="#FFFFFF" fill="#D0D5DD" />} label="Non démarré" />
         <Item swatch={<span className="h-[3px] w-5 rounded-full bg-[#C3C9D4]" />} label="Baseline" />
