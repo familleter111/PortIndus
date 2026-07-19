@@ -252,7 +252,7 @@ export default function PlanningPage() {
       case "toSummary":
         return onRowAction(wbs, { kind: "shape", value: "summary" });
       case "removeDep":
-        patch(wbs, { dependsOn: undefined, depType: undefined });
+        patch(wbs, { dependsOn: undefined, depType: undefined, depOffset: undefined });
         return;
       case "duplicate":
         return onRowAction(wbs, { kind: "duplicate" });
@@ -261,9 +261,12 @@ export default function PlanningPage() {
     }
   };
 
-  /** Le lien se stocke sur le successeur : c'est lui qui porte `dependsOn`. */
+  /**
+   * Le lien se stocke sur le successeur : c'est lui qui porte `dependsOn`.
+   * Le décalage manuel du coude est remis à zéro, il ne vaut que pour l'ancien tracé.
+   */
   const linkRows = (from: string, to: string, type: DepType) =>
-    patch(to, { dependsOn: from, depType: type });
+    patch(to, { dependsOn: from, depType: type, depOffset: undefined });
 
   /**
    * Saisie d'un champ du bandeau d'édition. Le statut repasse par l'action
@@ -600,12 +603,13 @@ export default function PlanningPage() {
               showBaseline={showBaseline}
               criticalPath={criticalPath}
               onChangeDepType={(wbs, type: DepType) => patch(wbs, { depType: type })}
-              onRemoveDep={(wbs) => patch(wbs, { dependsOn: undefined })}
+              onRemoveDep={(wbs) => patch(wbs, { dependsOn: undefined, depType: undefined, depOffset: undefined })}
               onReschedule={reschedule}
               onRowAction={onGanttAction}
               onCreateAt={createAt}
               onLink={linkRows}
               onRename={(wbs, name) => patch(wbs, { name })}
+              onMoveLink={(wbs, offsetDays) => patch(wbs, { depOffset: offsetDays })}
             />
           </Card>
         </div>

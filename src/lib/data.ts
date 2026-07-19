@@ -475,6 +475,11 @@ export interface PlanRow {
   dependsOn?: string;
   /** Type de lien : fin-début, fin-fin, début-fin, début-début. */
   depType?: DepType;
+  /**
+   * Décalage horizontal du coude du lien, exprimé en jours pour rester
+   * cohérent quelle que soit l'échelle d'affichage.
+   */
+  depOffset?: number;
 }
 
 /** Les quatre types de dépendance d'un planificateur. */

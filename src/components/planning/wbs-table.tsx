@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Bar as ProgressBar, Card, Chip, Dot } from "@/components/ui/primitives";
+import { FloatingMenu } from "@/components/planning/floating-menu";
 import { GANTT_HEAD_H, GANTT_ROW_H, durationDays } from "@/components/planning/gantt";
 import type { PlanRow } from "@/lib/data";
 import { getInitials } from "@/lib/utils";
@@ -198,7 +199,7 @@ export function WbsTable({
   onRowAction: (wbs: string, action: RowAction) => void;
 }) {
   const [configOpen, setConfigOpen] = React.useState(false);
-  const [rowMenu, setRowMenu] = React.useState<string | null>(null);
+  const [rowMenu, setRowMenu] = React.useState<{ wbs: string; x: number; y: number } | null>(null);
   const configRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -401,10 +402,15 @@ export function WbsTable({
                           aria-label="Actions sur la ligne"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setRowMenu(rowMenu === r.wbs ? null : r.wbs);
+                            const b = e.currentTarget.getBoundingClientRect();
+                            setRowMenu(
+                              rowMenu?.wbs === r.wbs
+                                ? null
+                                : { wbs: r.wbs, x: b.right, y: b.bottom + 4 },
+                            );
                           }}
                           className={`absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground transition-opacity hover:bg-muted hover:text-[#B45F09] ${
-                            rowMenu === r.wbs
+                            rowMenu?.wbs === r.wbs
                               ? "opacity-100"
                               : "opacity-0 focus:opacity-100 group-hover/row:opacity-100"
                           }`}
@@ -412,9 +418,11 @@ export function WbsTable({
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </button>
 
-                        {rowMenu === r.wbs ? (
+                        {rowMenu?.wbs === r.wbs ? (
                           <RowMenu
                             row={r}
+                            x={rowMenu.x}
+                            y={rowMenu.y}
                             onClose={() => setRowMenu(null)}
                             onAction={(a) => {
                               onRowAction(r.wbs, a);
@@ -486,29 +494,22 @@ const STATUS_DOT: Record<string, string> = {
 /** Menu contextuel d'une ligne, façon planificateur. */
 function RowMenu({
   row,
+  x,
+  y,
   onClose,
   onAction,
 }: {
   row: PlanRow;
+  x: number;
+  y: number;
   onClose: () => void;
   onAction: (a: RowAction) => void;
 }) {
   const shape = row.milestone ? "milestone" : row.summary ? "summary" : "task";
 
   return (
-    <>
-      <span
-        className="fixed inset-0 z-40"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        aria-hidden
-      />
-      <div
-        className="absolute right-0 top-full z-50 mt-0.5 max-h-[19rem] w-56 overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-modal scrollbar-thin"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <FloatingMenu x={x} y={y} onClose={onClose} className="w-56 py-1">
+      <div>
         <Section>Statut</Section>
         {STATUSES.map((s) => (
           <button
@@ -611,7 +612,7 @@ function RowMenu({
           onClick={() => onAction({ kind: "delete" })}
         />
       </div>
-    </>
+    </FloatingMenu>
   );
 }
 

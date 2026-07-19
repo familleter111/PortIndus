@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { FloatingMenu } from "@/components/planning/floating-menu";
 import {
   DEP_TYPES,
   NON_WORKING,
@@ -238,15 +239,23 @@ function barTone(row: PlanRow) {
   return { track: "#FFFFFF", fill: "#D0D5DD", text: "#667085" };
 }
 
+/** Abscisse par défaut du segment vertical du coude, avant décalage manuel. */
+function baseMid(x1: number, x2: number, enterLeft: boolean): number {
+  return enterLeft ? (x2 - x1 > 34 ? x2 - 18 : x1 + 14) : Math.max(x1, x2) + 18;
+}
+
 /** Coude à angles arrondis, dans le sens d'arrivée demandé. */
-function elbow(x1: number, y1: number, x2: number, y2: number, enterLeft: boolean): string {
+function elbow(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  enterLeft: boolean,
+  mid: number,
+): string {
   const r = 5;
   const endX = enterLeft ? x2 - 8 : x2 + 8;
   if (Math.abs(y2 - y1) < 1) return `M ${x1} ${y1} H ${endX}`;
-
-  const mid = enterLeft
-    ? (x2 - x1 > 34 ? x2 - 18 : x1 + 14)
-    : Math.max(x1, x2) + 18;
 
   const inDir = mid > x1 ? -r : r;   // approche du coude depuis x1
   const outDir = endX > mid ? r : -r; // sortie du coude vers endX
@@ -279,6 +288,7 @@ export function GanttChart({
   onCreateAt,
   onLink,
   onRename,
+  onMoveLink,
 }: {
   rows: PlanRow[];
   selectedWbs: string | null;
@@ -294,6 +304,7 @@ export function GanttChart({
   onCreateAt: (iso: string) => void;
   onLink: (from: string, to: string, type: DepType) => void;
   onRename: (wbs: string, name: string) => void;
+  onMoveLink: (wbs: string, offsetDays: number) => void;
 }) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [menu, setMenu] = React.useState<{ wbs: string; type: DepType; x: number; y: number } | null>(null);
@@ -301,6 +312,12 @@ export function GanttChart({
   const [drag, setDrag] = React.useState<Drag | null>(null);
   const [linking, setLinking] = React.useState<LinkDraft | null>(null);
   const [editing, setEditing] = React.useState<string | null>(null);
+  const [linkDrag, setLinkDrag] = React.useState<{
+    wbs: string;
+    x0: number;
+    base: number;
+    delta: number;
+  } | null>(null);
   const [hostW, setHostW] = React.useState(0);
   const bodyRef = React.useRef<HTMLDivElement>(null);
 
@@ -356,6 +373,27 @@ export function GanttChart({
       window.removeEventListener("mouseup", onUp);
     };
   }, [drag, dayW, onReschedule]);
+
+  // Glissement du coude d'un lien, pour le dégager d'un libellé.
+  React.useEffect(() => {
+    if (!linkDrag) return;
+    const onMove = (e: MouseEvent) => {
+      const delta = e.clientX - linkDrag.x0;
+      if (delta !== linkDrag.delta) setLinkDrag({ ...linkDrag, delta });
+    };
+    const onUp = () => {
+      if (linkDrag.delta !== 0) {
+        onMoveLink(linkDrag.wbs, linkDrag.base + linkDrag.delta / dayW);
+      }
+      setLinkDrag(null);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [linkDrag, dayW, onMoveLink]);
 
   const startDrag = (e: React.MouseEvent, row: PlanRow, mode: DragMode) => {
     e.preventDefault();
@@ -433,10 +471,10 @@ export function GanttChart({
     setLinking(null);
   };
 
+  // Coordonnées viewport : le menu est rendu dans un portail, hors de la carte.
   const openBarMenu = (e: React.MouseEvent, wbs: string) => {
-    const host = scrollRef.current?.getBoundingClientRect();
     onSelect(wbs);
-    setBarMenu({ wbs, x: e.clientX - (host?.left ?? 0), y: e.clientY - (host?.top ?? 0) });
+    setBarMenu({ wbs, x: e.clientX, y: e.clientY });
   };
 
   const links = rows.flatMap((row, i) => {
@@ -448,6 +486,9 @@ export function GanttChart({
     const enterLeft = type === "FS" || type === "SS";
     const x1 = type === "SS" || type === "SF" ? px(from.fStart) : pxEnd(from.fEnd);
     const x2 = enterLeft ? px(row.fStart) : pxEnd(row.fEnd);
+    // Décalage stocké en jours, plus l'éventuel glissement en cours.
+    const offsetDays = row.depOffset ?? 0;
+    const live = linkDrag?.wbs === row.wbs ? linkDrag.delta : 0;
     return [
       {
         key: row.wbs,
@@ -457,6 +498,8 @@ export function GanttChart({
         y1: fromIndex * GANTT_ROW_H + GANTT_ROW_H / 2,
         x2,
         y2: i * GANTT_ROW_H + GANTT_ROW_H / 2,
+        mid: baseMid(x1, x2, enterLeft) + offsetDays * dayW + live,
+        offsetDays,
         critical: from.critical && row.critical,
       },
     ];
@@ -567,13 +610,24 @@ export function GanttChart({
                 const arrow = l.enterLeft
                   ? `${l.x2 - 8},${l.y2 - 3.5} ${l.x2},${l.y2} ${l.x2 - 8},${l.y2 + 3.5}`
                   : `${l.x2 + 8},${l.y2 - 3.5} ${l.x2},${l.y2} ${l.x2 + 8},${l.y2 + 3.5}`;
-                const d = elbow(l.x1, l.y1, l.x2, l.y2, l.enterLeft);
+                const d = elbow(l.x1, l.y1, l.x2, l.y2, l.enterLeft, l.mid);
+                const vTop = Math.min(l.y1, l.y2);
+                const vBottom = Math.max(l.y1, l.y2);
+                const dragging = linkDrag?.wbs === l.key;
                 return (
-                  <g key={l.key} opacity={dim ? 0.15 : 1}>
+                  <g key={l.key} className="group/link" opacity={dim ? 0.15 : 1}>
                     <circle cx={l.x1} cy={l.y1} r={2.5} fill={color} pointerEvents="none" />
-                    <path d={d} fill="none" stroke={color} strokeWidth={1.25} strokeLinejoin="round" pointerEvents="none" />
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke={dragging ? "#3976D3" : color}
+                      strokeWidth={dragging ? 1.75 : 1.25}
+                      strokeLinejoin="round"
+                      pointerEvents="none"
+                    />
                     <polygon points={arrow} fill={color} pointerEvents="none" />
-                    {/* Zone de clic élargie, invisible */}
+
+                    {/* Zone de clic élargie, invisible : ouvre le menu du lien */}
                     <path
                       d={d}
                       fill="none"
@@ -583,17 +637,53 @@ export function GanttChart({
                       pointerEvents="stroke"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const host = scrollRef.current?.getBoundingClientRect();
-                        setMenu({
-                          wbs: l.key,
-                          type: l.type,
-                          x: e.clientX - (host?.left ?? 0),
-                          y: e.clientY - (host?.top ?? 0),
-                        });
+                        setMenu({ wbs: l.key, type: l.type, x: e.clientX, y: e.clientY });
                       }}
                     >
                       <title>{`Lien ${l.type} — cliquer pour modifier`}</title>
                     </path>
+
+                    {/* Poignée du coude : glisser à gauche ou à droite pour
+                        dégager le tracé d'un libellé. */}
+                    {vBottom - vTop > 6 ? (
+                      <>
+                        <line
+                          x1={l.mid}
+                          y1={vTop + 4}
+                          x2={l.mid}
+                          y2={vBottom - 4}
+                          stroke="#3976D3"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          pointerEvents="none"
+                          className={
+                            dragging ? "opacity-100" : "opacity-0 group-hover/link:opacity-60"
+                          }
+                        />
+                        <line
+                          x1={l.mid}
+                          y1={vTop}
+                          x2={l.mid}
+                          y2={vBottom}
+                          stroke="transparent"
+                          strokeWidth={12}
+                          pointerEvents="stroke"
+                          className="cursor-ew-resize"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setLinkDrag({
+                              wbs: l.key,
+                              x0: e.clientX,
+                              base: l.offsetDays,
+                              delta: 0,
+                            });
+                          }}
+                        >
+                          <title>Glisser pour décaler le tracé du lien</title>
+                        </line>
+                      </>
+                    ) : null}
                   </g>
                 );
               })}
@@ -835,12 +925,13 @@ export function GanttChart({
           };
 
           return (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setBarMenu(null)} aria-hidden />
-              <div
-                className="absolute z-50 w-60 rounded-lg border border-border bg-white py-1 shadow-modal"
-                style={{ left: Math.max(4, barMenu.x - 20), top: Math.max(4, barMenu.y - 10) }}
-              >
+            <FloatingMenu
+              x={barMenu.x}
+              y={barMenu.y}
+              onClose={() => setBarMenu(null)}
+              className="w-60 py-1"
+            >
+              <div>
                 <p className="truncate px-3 pb-1 pt-0.5 text-[11px] font-semibold text-foreground">
                   {row.id} — {row.name}
                 </p>
@@ -898,7 +989,7 @@ export function GanttChart({
                   L&apos;extrémité choisie détermine le type : Fin→Début, Début→Début…
                 </p>
               </div>
-            </>
+            </FloatingMenu>
           );
         })()
       ) : null}
@@ -912,15 +1003,8 @@ export function GanttChart({
 
       {/* -------------------------------------------- Menu d'une dépendance */}
       {menu ? (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} aria-hidden />
-          <div
-            className="absolute z-50 w-56 rounded-lg border border-border bg-white py-1.5 shadow-modal"
-            style={{
-              left: Math.max(4, menu.x - 110),
-              top: Math.min(menu.y + 8, Math.max(4, bodyH - 40)),
-            }}
-          >
+        <FloatingMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)} className="w-56 py-1.5">
+          <div>
             <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               Type de dépendance
             </p>
@@ -953,7 +1037,7 @@ export function GanttChart({
               Supprimer la dépendance
             </button>
           </div>
-        </>
+        </FloatingMenu>
       ) : null}
 
       {/* ------------------------------------------------------------ Légende */}
