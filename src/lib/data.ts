@@ -602,6 +602,106 @@ export const PLAN_RISKS = [
   },
 ];
 
+/* --------------------------- Charge par service --------------------------- */
+
+/** Axe mensuel de la heatmap de charge, sur 19 mois. */
+export const LOAD_MONTHS = [
+  "Déc. 26", "Jan. 27", "Fév. 27", "Mar. 27", "Avr. 27", "Mai 27", "Juin 27",
+  "Juil. 27", "Aoû. 27", "Sep. 27", "Oct. 27", "Nov. 27", "Déc. 27",
+  "Jan. 28", "Fév. 28", "Mar. 28", "Avr. 28", "Mai 28", "Juin 28",
+];
+
+export interface LoadPilot {
+  name: string;
+  initials: string;
+  color: string;
+  projects: number;
+  /** Charge mensuelle en % de capacité ; `null` = aucune activité planifiée. */
+  values: (number | null)[];
+}
+
+export interface LoadService {
+  service: string;
+  pilots: number;
+  values: (number | null)[];
+  members: LoadPilot[];
+}
+
+const n = null;
+
+export const SERVICE_LOAD: LoadService[] = [
+  {
+    service: "Programme", pilots: 7,
+    values: [42, 29, 31, 35, 55, 30, 32, 12, 34, n, 23, 26, 16, 7, n, 3, 9, 14, 1],
+    members: [
+      { name: "Leïla Mansour", initials: "LM", color: "#B45F09", projects: 9,
+        values: [58, 31, 44, 40, 72, 33, 41, 12, 47, n, 30, 35, 22, 9, n, 4, 12, 19, 1] },
+      { name: "Hatem Ben Ali", initials: "HB", color: "#3976D3", projects: 5,
+        values: [26, 27, 18, 30, 38, 27, 23, 12, 21, n, 16, 17, 10, 5, n, 2, 6, 9, 1] },
+    ],
+  },
+  {
+    service: "Engineering", pilots: 4,
+    values: [161, 88, 74, 101, 47, 35, 54, 41, 7, n, n, n, n, n, n, n, n, n, n],
+    members: [
+      { name: "Rim Bouazizi", initials: "RB", color: "#E58A00", projects: 6,
+        values: [188, 96, 81, 118, 52, 38, 61, 44, 8, n, n, n, n, n, n, n, n, n, n] },
+      { name: "Anis Gharbi", initials: "AG", color: "#0891B2", projects: 4,
+        values: [134, 80, 67, 84, 42, 32, 47, 38, 6, n, n, n, n, n, n, n, n, n, n] },
+    ],
+  },
+  {
+    service: "Qualité", pilots: 5,
+    values: [144, 119, 143, 162, 138, 126, 106, 88, 50, 87, 96, 41, 20, 12, 19, 20, 30, 2, n],
+    members: [
+      { name: "Noura Trabelsi", initials: "NT", color: "#D92D20", projects: 8,
+        values: [176, 141, 174, 198, 163, 149, 121, 96, 55, 99, 112, 47, 22, 13, 21, 23, 34, 2, n] },
+      { name: "Ines Chaabane", initials: "IC", color: "#7C3AED", projects: 5,
+        values: [112, 97, 112, 126, 113, 103, 91, 80, 45, 75, 80, 35, 18, 11, 17, 17, 26, 2, n] },
+    ],
+  },
+  {
+    service: "Industrialisation", pilots: 4,
+    values: [211, 178, 156, 181, 165, 132, 121, 64, 67, 52, 37, 24, n, n, n, n, n, n, n],
+    members: [
+      { name: "Karim Belhadj", initials: "KB", color: "#2E7D32", projects: 7,
+        values: [244, 201, 172, 205, 186, 148, 139, 71, 76, 58, 41, 27, n, n, n, n, n, n, n] },
+      { name: "Youssef Jaziri", initials: "YJ", color: "#3976D3", projects: 6,
+        values: [178, 155, 140, 157, 144, 116, 103, 57, 58, 46, 33, 21, n, n, n, n, n, n, n] },
+    ],
+  },
+  {
+    service: "Production", pilots: 3,
+    values: [47, 55, 86, 46, 23, 79, 11, 32, 103, 13, 19, n, 25, 28, 12, n, n, n, n],
+    members: [
+      { name: "Meriem Khelifi", initials: "MK", color: "#475467", projects: 7,
+        values: [77, n, n, 42, 37, n, 12, 96, 169, 15, n, n, 76, n, n, n, n, n, n] },
+      { name: "Slim Toumi", initials: "ST", color: "#E58A00", projects: 8,
+        values: [20, 147, 53, 97, 17, 109, 22, n, 140, 23, 57, n, n, n, n, n, n, n, n] },
+      { name: "Dorra Ben Amor", initials: "DA", color: "#2E7D32", projects: 6,
+        values: [43, 19, 206, n, 13, 127, n, n, n, n, n, n, n, n, 85, 36, n, n, n] },
+    ],
+  },
+  {
+    service: "Achats", pilots: 3,
+    values: [n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n],
+    members: [],
+  },
+  {
+    service: "Logistique", pilots: 2,
+    values: [n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n],
+    members: [],
+  },
+];
+
+export const LOAD_KPIS = [
+  { value: "24", label: "Projets au planning", note: "55 705 h de charge", icon: "layers" },
+  { value: "9", label: "Projets à risque", note: "santé Rouge", icon: "alert", chip: "Arbitrage requis", tone: "red" as const },
+  { value: "21", label: "Pilotes en surcharge", note: "75 mois-pilotes au-dessus de la capacité", icon: "users", chip: "Conflit", tone: "red" as const },
+  { value: "211 %", label: "Service le plus contraint", note: "Industrialisation", icon: "gauge", chip: "Surcharge", tone: "red" as const },
+  { value: "12", label: "Actions en retard", note: "sur le périmètre filtré", icon: "clock", chip: "Critique", tone: "red" as const },
+];
+
 /* ------------------------------ Conflit charge ---------------------------- */
 
 export const RESOURCE_CONFLICT = {

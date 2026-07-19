@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   FolderClosed,
   Home,
+  LayoutGrid,
   LineChart,
   PanelLeftClose,
   PanelLeftOpen,
@@ -39,18 +40,105 @@ interface NavItem {
   icon: typeof Home;
   href?: string;
   owns?: string[];
+  /** Sous-entrées : le parent devient un simple intitulé de groupe. */
+  children?: NavItem[];
 }
 
 const NAV: NavItem[] = [
   { label: "Accueil", icon: Home },
   { label: "Portefeuille", href: "/portefeuille", icon: Briefcase, owns: ["/portefeuille"] },
   { label: "Projets", href: "/projet", icon: FolderClosed, owns: ["/projet", "/nouveau-projet"] },
-  { label: "Planning", href: "/planning", icon: CalendarDays, owns: ["/planning"] },
+  {
+    label: "Planning",
+    icon: CalendarDays,
+    children: [
+      {
+        label: "Risques & conflits",
+        href: "/planning",
+        icon: CalendarDays,
+        // Le détail ne doit pas s'allumer quand on est sur la charge.
+        owns: ["/planning"],
+      },
+      {
+        label: "Charge par service",
+        href: "/planning/charge",
+        icon: LayoutGrid,
+        owns: ["/planning/charge"],
+      },
+    ],
+  },
   { label: "Exécution", href: "/execution", icon: LineChart, owns: ["/execution", "/validation"] },
   { label: "Ressources", icon: Users },
   { label: "Rapports", icon: BarChart3 },
   { label: "Paramètres", icon: Settings },
 ];
+
+/** Une entrée est active si l'URL tombe dans son périmètre — le plus précis gagne. */
+function isActive(item: NavItem, pathname: string): boolean {
+  const own = (item.owns ?? []).some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+  if (!own) return false;
+  // « /planning » ne s'allume pas pour « /planning/charge », qui a sa propre entrée.
+  const deeper = NAV.flatMap((n) => n.children ?? [])
+    .flatMap((c) => c.owns ?? [])
+    .filter((r) => r !== (item.owns ?? [])[0] && r.startsWith(`${(item.owns ?? [])[0]}/`));
+  return !deeper.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
+
+/** Une entrée de menu : lien si elle a un écran, texte inerte sinon. */
+function NavLink({
+  item,
+  active,
+  collapsed,
+  nested,
+}: {
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+  nested?: boolean;
+}) {
+  const Icon = item.icon;
+  const base = cn(
+    "relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-colors",
+    nested && !collapsed && "pl-4 text-[12px]",
+  );
+  const content = (
+    <>
+      {active ? (
+        <span className="absolute -left-2.5 bottom-1.5 top-1.5 w-[3px] rounded-r-full bg-[#E58A00]" />
+      ) : null}
+      <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-[#B45F09]")} />
+      {!collapsed ? item.label : null}
+    </>
+  );
+
+  if (!item.href) {
+    return (
+      <span
+        title={`${item.label} — module non inclus dans la démonstration`}
+        className={cn(base, "cursor-default text-[#98A2B3]")}
+      >
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      aria-current={active ? "page" : undefined}
+      data-module={item.label}
+      className={cn(
+        base,
+        active ? "bg-[#FDF4E7] text-[#B45F09]" : "text-[#475467] hover:bg-muted",
+      )}
+    >
+      {content}
+    </Link>
+  );
+}
 
 export function AppShell({
   children,
@@ -129,48 +217,39 @@ export function AppShell({
 
         <nav className="flex-1 space-y-0.5 px-2.5 py-2">
           {NAV.map((item) => {
-            const active = (item.owns ?? []).some(
-              (route) => pathname === route || pathname.startsWith(`${route}/`),
-            );
-            const Icon = item.icon;
-            const content = (
-              <>
-                {active ? (
-                  <span className="absolute -left-2.5 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-[#E58A00]" />
-                ) : null}
-                <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-[#B45F09]")} />
-                {!collapsed ? item.label : null}
-              </>
-            );
-            const base =
-              "relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-colors";
-
-            if (!item.href) {
+            // Entrée de groupe : intitulé discret, puis ses sous-entrées.
+            if (item.children) {
+              const GroupIcon = item.icon;
               return (
-                <span
-                  key={item.label}
-                  title={`${item.label} — module non inclus dans la démonstration`}
-                  className={cn(base, "cursor-default text-[#98A2B3]")}
-                >
-                  {content}
-                </span>
+                <div key={item.label} className={cn(!collapsed && "pt-1.5")}>
+                  {!collapsed ? (
+                    <p className="flex items-center gap-2 px-2.5 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#98A2B3]">
+                      <GroupIcon className="h-3.5 w-3.5" />
+                      {item.label}
+                    </p>
+                  ) : null}
+                  <div className="space-y-0.5">
+                    {item.children.map((child) => (
+                      <NavLink
+                        key={child.label}
+                        item={child}
+                        active={isActive(child, pathname)}
+                        collapsed={collapsed}
+                        nested
+                      />
+                    ))}
+                  </div>
+                </div>
               );
             }
 
             return (
-              <Link
+              <NavLink
                 key={item.label}
-                href={item.href}
-                title={item.label}
-                aria-current={active ? "page" : undefined}
-                data-module={item.label}
-                className={cn(
-                  base,
-                  active ? "bg-[#FDF4E7] text-[#B45F09]" : "text-[#475467] hover:bg-muted",
-                )}
-              >
-                {content}
-              </Link>
+                item={item}
+                active={isActive(item, pathname)}
+                collapsed={collapsed}
+              />
             );
           })}
         </nav>

@@ -426,6 +426,11 @@ export default function PlanningPage() {
             <button
               key={tab}
               type="button"
+              onClick={
+                tab === "Charge / Capacité"
+                  ? () => router.push("/planning/charge")
+                  : undefined
+              }
               className={`border-b-2 pb-1.5 text-[13px] font-medium transition-colors ${
                 i === 0
                   ? "border-[#E58A00] text-[#B45F09]"
