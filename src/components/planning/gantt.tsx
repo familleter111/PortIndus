@@ -244,6 +244,43 @@ function baseMid(x1: number, x2: number, enterLeft: boolean): number {
   return enterLeft ? (x2 - x1 > 34 ? x2 - 18 : x1 + 14) : Math.max(x1, x2) + 18;
 }
 
+/** Emprise horizontale approximative d'un libellé, en pixels. */
+interface LabelBox {
+  from: number;
+  to: number;
+}
+
+/**
+ * Choisit l'abscisse du coude qui traverse le moins de libellés possible.
+ * Sans ça, le trait vertical tombe régulièrement en plein milieu d'un texte.
+ */
+function pickMid(
+  x1: number,
+  x2: number,
+  enterLeft: boolean,
+  crossed: LabelBox[],
+): number {
+  const fallback = baseMid(x1, x2, enterLeft);
+  if (!enterLeft || x2 - x1 < 40 || crossed.length === 0) return fallback;
+
+  const candidates = [fallback];
+  // On balaie l'espace entre les deux barres par pas régulier.
+  for (let t = 0.15; t <= 0.85; t += 0.1) candidates.push(x1 + (x2 - x1) * t);
+
+  let best = fallback;
+  let bestScore = Infinity;
+  for (const mid of candidates) {
+    const hits = crossed.filter((b) => mid >= b.from - 3 && mid <= b.to + 3).length;
+    // À nombre de collisions égal, on garde le tracé le plus proche du défaut.
+    const score = hits * 1000 + Math.abs(mid - fallback);
+    if (score < bestScore) {
+      bestScore = score;
+      best = mid;
+    }
+  }
+  return best;
+}
+
 /** Coude à angles arrondis, dans le sens d'arrivée demandé. */
 function elbow(
   x1: number,
@@ -477,6 +514,29 @@ export function GanttChart({
     setBarMenu({ wbs, x: e.clientX, y: e.clientY });
   };
 
+  /**
+   * Géométrie des libellés, calculée avant les liens : le routage des coudes
+   * s'en sert pour éviter de traverser un texte.
+   */
+  const labels = rows.map((row) => {
+    const start = px(row.fStart);
+    const end = pxEnd(row.fEnd);
+    const text = row.milestone
+      ? `${row.gate ?? ""} · ${row.name}`
+      : `${durationDays(row.fStart, row.fEnd)} j · ${row.progress} % · ${row.name}`;
+    // 4,4 px par caractère à 9 px de fonte, marges comprises.
+    const width = text.length * 4.4 + 10;
+    const after = end + 200 < totalW;
+    const anchor = after ? (row.milestone ? start + 8 : end) : start;
+    return {
+      text,
+      after,
+      anchor,
+      from: after ? anchor : anchor - width,
+      to: after ? anchor + width : anchor,
+    };
+  });
+
   const links = rows.flatMap((row, i) => {
     if (!row.dependsOn) return [];
     const fromIndex = rows.findIndex((r) => r.wbs === row.dependsOn);
@@ -489,6 +549,13 @@ export function GanttChart({
     // Décalage stocké en jours, plus l'éventuel glissement en cours.
     const offsetDays = row.depOffset ?? 0;
     const live = linkDrag?.wbs === row.wbs ? linkDrag.delta : 0;
+
+    // Libellés que le segment vertical traverserait, bornes comprises.
+    const lo = Math.min(fromIndex, i);
+    const hi = Math.max(fromIndex, i);
+    const crossed = labels.slice(lo, hi + 1);
+    const auto = pickMid(x1, x2, enterLeft, crossed);
+
     return [
       {
         key: row.wbs,
@@ -498,7 +565,7 @@ export function GanttChart({
         y1: fromIndex * GANTT_ROW_H + GANTT_ROW_H / 2,
         x2,
         y2: i * GANTT_ROW_H + GANTT_ROW_H / 2,
-        mid: baseMid(x1, x2, enterLeft) + offsetDays * dayW + live,
+        mid: auto + offsetDays * dayW + live,
         offsetDays,
         critical: from.critical && row.critical,
       },
@@ -891,7 +958,7 @@ export function GanttChart({
                         e.stopPropagation();
                         setEditing(row.wbs);
                       }}
-                      className={`absolute top-1/2 z-10 -translate-y-1/2 cursor-text whitespace-nowrap rounded px-1 text-[9px] leading-none hover:bg-white/70 ${
+                      className={`gantt-label absolute top-1/2 z-20 -translate-y-1/2 cursor-text whitespace-nowrap rounded px-1 text-[9px] leading-none ${
                         labelRight ? "ml-1" : "-ml-1 -translate-x-full"
                       }`}
                       style={{ left: labelRight ? (row.milestone ? start + 8 : start + w) : start }}

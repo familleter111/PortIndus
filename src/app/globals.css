@@ -76,4 +76,15 @@
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
+
+  /*
+   * Libellés du Gantt : halo blanc autour des lettres. Les traits de
+   * dépendance passent derrière et sont interrompus au ras des glyphes,
+   * sans le rectangle disgracieux d'un fond plein.
+   */
+  .gantt-label {
+    text-shadow:
+      0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff,
+      1px 0 2px #fff, -1px 0 2px #fff, 0 1px 2px #fff, 0 -1px 2px #fff;
+  }
 }
