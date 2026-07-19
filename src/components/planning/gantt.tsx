@@ -13,7 +13,10 @@ import {
 } from "@/lib/data";
 
 /** Row geometry — shared with the WBS table so both stay aligned. */
-export const GANTT_ROW_H = 30;
+export const GANTT_ROW_H = 34;
+
+/** Écart entre le bout d'une barre et son libellé, pour dégager les traits. */
+const LABEL_GAP = 14;
 /** Deux bandeaux : période au-dessus, graduations lisibles en dessous. */
 export const GANTT_HEAD_H = 54;
 
@@ -232,12 +235,13 @@ function headerFor(scale: Scale): { top: Band[]; ticks: Band[] } {
  */
 function barTone(row: PlanRow) {
   if (row.status === "Terminé" || row.progress >= 100)
-    return { track: "#D1FADF", fill: "#2E7D32", text: "#1B5E20" };
+    return { track: "#D7F5E1", fill: "#2E7D32", edge: "#93D3A8", text: "#1B5E20" };
   if (row.critical || row.status === "En retard")
-    return { track: "#FEE4E2", fill: "#D92D20", text: "#B42318" };
+    return { track: "#FCE0DE", fill: "#D92D20", edge: "#F2A9A3", text: "#B42318" };
   if (row.status === "En cours" || row.progress > 0)
-    return { track: "#FDECD6", fill: "#E58A00", text: "#B45F09" };
-  return { track: "#FFFFFF", fill: "#D0D5DD", text: "#667085" };
+    return { track: "#FCE6C8", fill: "#E58A00", edge: "#EDBE7C", text: "#B45F09" };
+  // Non démarrée : un gris franc plutôt que du blanc, sinon la barre disparaît.
+  return { track: "#EDEFF3", fill: "#B7BEC9", edge: "#C7CDD6", text: "#667085" };
 }
 
 /** Abscisse par défaut du segment vertical du coude, avant décalage manuel. */
@@ -539,18 +543,22 @@ export function GanttChart({
     const start = px(row.fStart);
     const end = pxEnd(row.fEnd);
     const text = row.milestone
-      ? `${row.gate ?? ""} · ${row.name}`
-      : `${durationDays(row.fStart, row.fEnd)} j · ${row.progress} % · ${row.name}`;
-    // 4,4 px par caractère à 9 px de fonte, marges comprises.
-    const width = text.length * 4.4 + 10;
-    const after = end + 200 < totalW;
-    const anchor = after ? (row.milestone ? start + 8 : end) : start;
+      ? `${row.name} ${row.gate ?? ""}`
+      : `${row.name} ${durationDays(row.fStart, row.fEnd)} j · ${row.progress} %`;
+    // ≈ 5 px par caractère à 10 px de fonte, marges du fond comprises.
+    const width = text.length * 5 + 14;
+    // Le libellé bascule à gauche seulement s'il déborderait vraiment.
+    const after = end + LABEL_GAP + width < totalW;
+    const anchor = after
+      ? (row.milestone ? start + 10 : end) + LABEL_GAP
+      : start - LABEL_GAP;
     return {
       text,
       after,
       anchor,
-      from: after ? anchor : anchor - width,
-      to: after ? anchor + width : anchor,
+      // L'écart au bord de barre fait partie de la zone à ne pas traverser.
+      from: after ? anchor - LABEL_GAP : anchor - width,
+      to: after ? anchor + width : anchor + LABEL_GAP,
     };
   });
 
@@ -815,7 +823,8 @@ export function GanttChart({
               const dim = criticalPath && !row.critical && !row.summary;
               const tone = barTone(row);
               const days = durationDays(fStart, fEnd);
-              const labelRight = end + 200 < totalW;
+              // Même décision que dans `labels`, pour que routage et rendu s'accordent.
+              const labelRight = labels[rowIndex]?.after ?? true;
 
               return (
                 <div
@@ -866,7 +875,7 @@ export function GanttChart({
                     <>
                       {showBaseline ? (
                         <span
-                          className="pointer-events-none absolute bottom-[3px] block h-[3px] rounded-full bg-[#C3C9D4]"
+                          className="pointer-events-none absolute bottom-[4px] block h-[3px] rounded-full bg-[#C3C9D4]"
                           style={{
                             left: px(row.bStart),
                             width: Math.max(4, pxEnd(row.bEnd) - px(row.bStart)),
@@ -878,10 +887,16 @@ export function GanttChart({
                           drag?.wbs === row.wbs ? "cursor-grabbing shadow-modal" : "cursor-grab"
                         } ${
                           active
-                            ? "border-[#B45F09] shadow-[0_0_0_2px_rgba(180,95,9,0.25)]"
-                            : "border-black/5 group-hover:shadow-card"
+                            ? "shadow-[0_0_0_2px_rgba(180,95,9,0.3)]"
+                            : "group-hover:shadow-card"
                         }`}
-                        style={{ left: start, width: w, height: 14, backgroundColor: tone.track }}
+                        style={{
+                          left: start,
+                          width: w,
+                          height: 16,
+                          backgroundColor: tone.track,
+                          borderColor: active ? "#B45F09" : tone.edge,
+                        }}
                         onMouseDown={(e) => startDrag(e, row, "move")}
                         onMouseUp={(e) => finishLink(e, row)}
                         onContextMenu={(e) => {
@@ -972,23 +987,29 @@ export function GanttChart({
                         e.stopPropagation();
                         setEditing(row.wbs);
                       }}
-                      className={`gantt-label absolute top-1/2 z-20 -translate-y-1/2 cursor-text whitespace-nowrap rounded-[3px] px-1 py-[2px] text-[9px] leading-none ${
-                        labelRight ? "ml-1.5" : "-ml-1.5 -translate-x-full"
+                      className={`gantt-label absolute top-1/2 z-20 -translate-y-1/2 cursor-text whitespace-nowrap rounded-[4px] px-1.5 py-[3px] text-[10px] leading-none ${
+                        labelRight ? "" : "-translate-x-full"
                       }`}
                       style={{
-                        left: labelRight ? (row.milestone ? start + 8 : start + w) : start,
+                        left: labelRight
+                          ? (row.milestone ? start + 10 : start + w) + LABEL_GAP
+                          : start - LABEL_GAP,
                         // Fond opaque assorti à la ligne : c'est lui qui garantit
                         // qu'aucun trait de dépendance ne coupe le texte.
                         backgroundColor: active ? "#FEF6E7" : "#FFFFFF",
                       }}
                     >
-                      <span className="font-semibold" style={{ color: tone.text }}>
-                        {row.milestone ? row.gate : `${days} j`}
-                      </span>
-                      {row.milestone ? null : (
-                        <span className="text-muted-foreground"> · {row.progress} %</span>
+                      {/* Le nom d'abord et en foncé : c'est ce qu'on cherche à lire. */}
+                      <span className="font-semibold text-foreground">{row.name}</span>
+                      {row.milestone ? (
+                        <span className="ml-1 font-semibold" style={{ color: tone.text }}>
+                          {row.gate}
+                        </span>
+                      ) : (
+                        <span className="ml-1 text-muted-foreground">
+                          {days} j · {row.progress} %
+                        </span>
                       )}
-                      <span className="text-[#98A2B3]"> · {row.name}</span>
                     </span>
                   )}
                 </div>
