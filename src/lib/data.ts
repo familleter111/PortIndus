@@ -407,13 +407,38 @@ export interface PlanRow {
   critical: boolean;
   predecessors: string;
   delay: string;
-  status: "En retard" | "En cours" | "Non démarré";
+  status: "En retard" | "En cours" | "Non démarré" | "Terminé";
   milestone?: boolean;
+  /** Ligne de regroupement WBS : barre récapitulative dans le Gantt. */
+  summary?: boolean;
   /** WBS de la tâche dont dépend celle-ci (flèche du Gantt). */
   dependsOn?: string;
+  /** Type de lien : fin-début, fin-fin, début-fin, début-début. */
+  depType?: DepType;
 }
 
+/** Les quatre types de dépendance d'un planificateur. */
+export type DepType = "FS" | "FF" | "SF" | "SS";
+
+export const DEP_TYPES: { key: DepType; label: string; hint: string }[] = [
+  { key: "FS", label: "Fin → Début", hint: "La suivante démarre quand la précédente est terminée." },
+  { key: "FF", label: "Fin → Fin", hint: "Les deux se terminent en même temps." },
+  { key: "SF", label: "Début → Fin", hint: "La suivante se termine quand la précédente démarre." },
+  { key: "SS", label: "Début → Début", hint: "Les deux démarrent en même temps." },
+];
+
+/** Jours chômés exclus du planning (fériés France sur la fenêtre). */
+export const NON_WORKING = [
+  "2026-12-25", "2027-01-01", "2027-04-05",
+];
+
 export const PLAN_ROWS: PlanRow[] = [
+  {
+    wbs: "3", id: "PH3", name: "Process Design", owner: "—",
+    bStart: "2026-12-02", bEnd: "2027-01-14", fStart: "2026-12-02", fEnd: "2027-01-16",
+    load: 232, progress: 32, critical: false, predecessors: "2.4", delay: "+2",
+    status: "En cours", summary: true,
+  },
   {
     wbs: "3.1", id: "T08", name: "Établir diagramme de flux process", owner: "Youssef Jaziri",
     bStart: "2026-12-02", bEnd: "2026-12-13", fStart: "2026-12-02", fEnd: "2026-12-13",
@@ -435,12 +460,30 @@ export const PLAN_ROWS: PlanRow[] = [
     wbs: "3.4", id: "T11", name: "Suivre fabrication outillage", owner: "Youssef Jaziri",
     bStart: "2026-12-12", bEnd: "2027-01-06", fStart: "2026-12-15", fEnd: "2027-01-12",
     load: 64, progress: 23, critical: true, predecessors: "2.4", delay: "+4", status: "En cours",
+    summary: true,
+  },
+  {
+    wbs: "3.4.1", id: "T11a", name: "Usinage moule injection", owner: "Youssef Jaziri",
+    bStart: "2026-12-12", bEnd: "2026-12-25", fStart: "2026-12-15", fEnd: "2026-12-29",
+    load: 40, progress: 35, critical: true, predecessors: "2.4", delay: "+3", status: "En cours",
+  },
+  {
+    wbs: "3.4.2", id: "T11b", name: "Essais à froid outillage", owner: "Karim Belhadj",
+    bStart: "2026-12-28", bEnd: "2027-01-06", fStart: "2026-12-30", fEnd: "2027-01-12",
+    load: 24, progress: 0, critical: true, predecessors: "3.4.1", delay: "+4",
+    status: "Non démarré", dependsOn: "3.4.1",
   },
   {
     wbs: "3.5", id: "T12", gate: "G3", gateTone: "amber", name: "Gate G3 Process Freeze", owner: "—",
     bStart: "2027-01-14", bEnd: "2027-01-14", fStart: "2027-01-16", fEnd: "2027-01-16",
     load: 0, progress: 0, critical: false, predecessors: "3.2, 3.3, 3.4", delay: "+2",
     status: "En retard", milestone: true, dependsOn: "3.3",
+  },
+  {
+    wbs: "4", id: "PH4", name: "Product & Process Validation", owner: "—",
+    bStart: "2027-01-03", bEnd: "2027-03-05", fStart: "2027-01-20", fEnd: "2027-03-08",
+    load: 144, progress: 0, critical: false, predecessors: "3.5", delay: "+14",
+    status: "Non démarré", summary: true,
   },
   {
     wbs: "4.1", id: "T13", name: "Préparer production trial", owner: "Youssef Jaziri",
@@ -468,23 +511,30 @@ export const PLAN_ROWS: PlanRow[] = [
   },
 ];
 
-/** Fenêtre visible du Gantt : 19 semaines, du lundi S48 2026 au dimanche S14 2027. */
+/** Fenêtre visible du Gantt : 16 semaines, du lundi S35 au dimanche S50 2026. */
 export const PLAN_WINDOW = { start: "2026-11-23", weeks: 19 };
 
-export const PLAN_MONTHS = [
-  { label: "Déc. 2026", weeks: ["48", "49", "50", "51", "52"] },
-  { label: "Janv. 2027", weeks: ["01", "02", "03", "04", "05"] },
-  { label: "Févr. 2027", weeks: ["06", "07", "08", "09"] },
-  { label: "Mars 2027", weeks: ["10", "11", "12", "13"] },
-  { label: "Avr. 2027", weeks: ["14"] },
-];
-
 export const PLAN_RISKS = [
-  { id: "surcharge", label: "Surcharge Qualité +12 %", level: "Critique" },
-  { id: "pfmea", label: "PFMEA process en retard", level: "Majeur" },
-  { id: "freeze", label: "Impact sur Process Freeze +14 jours", level: "Critique" },
-  { id: "conflit", label: "Conflit de charge sur Noura Trabelsi", level: "Majeur" },
-  { id: "readiness", label: "Alerte ressources insuffisantes pour G3", level: "Majeur" },
+  {
+    id: "surcharge", label: "Surcharge Qualité +12 %", level: "Critique",
+    detail: "Dépend de la disponibilité de l'équipe qualité.",
+  },
+  {
+    id: "pfmea", label: "PFMEA process en retard", level: "Majeur",
+    detail: "Conflit avec une validation en cours sur un autre projet.",
+  },
+  {
+    id: "freeze", label: "Impact sur Process Freeze +14 jours", level: "Majeur",
+    detail: "Risque lié à la disponibilité des outillages.",
+  },
+  {
+    id: "conflit", label: "Conflit de charge sur Noura Trabelsi", level: "Mineur",
+    detail: "Livraison attendue d'équipement de rivetage.",
+  },
+  {
+    id: "readiness", label: "Capacité laboratoire insuffisante en déc. 2027", level: "Faible",
+    detail: "Risque de saturation des équipements de mesure.",
+  },
 ];
 
 /* ------------------------------ Conflit charge ---------------------------- */

@@ -40,6 +40,29 @@ import { RESOURCE_CONFLICT, SIMULATION } from "@/lib/data";
 /*  Shared bits                                                                */
 /* -------------------------------------------------------------------------- */
 
+/** Ce qu'une modale d'ajout remonte à la page pour créer la ligne. */
+export interface NewElement {
+  kind: "task" | "milestone" | "subtask";
+  name: string;
+  owner: string;
+  /** Dates ISO, telles que les rend `input[type=date]`. */
+  start: string;
+  end: string;
+  load: number;
+  /**
+   * Point d'accroche : groupe WBS pour une tâche (« 3.1 »), identifiant de la
+   * tâche de référence pour un jalon ou une sous-tâche (« T09 »).
+   */
+  anchor: string;
+  gate?: string;
+  critical?: boolean;
+}
+
+/** Premier identifiant de tâche cité dans un texte libre : « Entre T09 et T10 » → T09. */
+function firstTaskId(text: string): string {
+  return /T\d+/.exec(text)?.[0] ?? "";
+}
+
 function HintBar({ hints }: { hints: { a: string; t: string }[] }) {
   return (
     <Card className="mt-3 flex items-start gap-2.5 bg-[#F5F8FF] p-2.5">
@@ -89,10 +112,32 @@ function ImpactRow({
 export function AddMilestoneModal({
   open,
   onClose,
+  onCreate,
 }: {
   open: boolean;
   onClose: () => void;
+  onCreate: (el: NewElement) => void;
 }) {
+  const [name, setName] = React.useState("Revue intermédiaire PFMEA");
+  const [gate, setGate] = React.useState("G3");
+  const [date, setDate] = React.useState("2027-01-18");
+  const [position, setPosition] = React.useState("Entre T09 et T10");
+  const [owner, setOwner] = React.useState("Noura Trabelsi");
+
+  const submit = () => {
+    onCreate({
+      kind: "milestone",
+      name,
+      owner,
+      start: date,
+      end: date,
+      load: 0,
+      anchor: firstTaskId(position),
+      gate,
+    });
+    onClose();
+  };
+
   return (
     <Modal
       open={open}
@@ -104,19 +149,19 @@ export function AddMilestoneModal({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2.5">
           <Field label="Nom du jalon">
-            <Input defaultValue="Revue intermédiaire PFMEA" />
+            <Input defaultValue={name} onChange={(e) => setName(e.target.value)} />
           </Field>
           <Field label="Gate associée">
             <div className="relative">
-              <Input defaultValue="G3" />
+              <Input defaultValue={gate} onChange={(e) => setGate(e.target.value)} />
               <Flag className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#E58A00]" />
             </div>
           </Field>
           <Field label="Date cible">
-            <DateInput defaultValue="18/01/2027" />
+            <DateInput defaultValue="18/01/2027" onChange={(e) => setDate(e.target.value)} />
           </Field>
           <Field label="Position dans le WBS">
-            <Input defaultValue="Entre T09 et T10" />
+            <Input defaultValue={position} onChange={(e) => setPosition(e.target.value)} />
           </Field>
           <Field label="Description">
             <Textarea
@@ -125,7 +170,7 @@ export function AddMilestoneModal({
             />
           </Field>
           <Field label="Responsable">
-            <Select defaultValue="Noura Trabelsi">
+            <Select defaultValue={owner} onChange={(e) => setOwner(e.target.value)}>
               <option>Noura Trabelsi</option>
               <option>Youssef Jaziri</option>
             </Select>
@@ -173,7 +218,7 @@ export function AddMilestoneModal({
             <Button variant="ghost" className="border-border" onClick={onClose}>
               Annuler
             </Button>
-            <Button variant="amber" onClick={onClose}>
+            <Button variant="amber" onClick={submit}>
               Ajouter le jalon
             </Button>
           </div>
@@ -194,7 +239,37 @@ export function AddMilestoneModal({
 /*  Image 9 — Ajouter une tâche                                                */
 /* -------------------------------------------------------------------------- */
 
-export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AddTaskModal({
+  open,
+  onClose,
+  onCreate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (el: NewElement) => void;
+}) {
+  const [name, setName] = React.useState("Mettre à jour plan de contrôle G3");
+  const [group, setGroup] = React.useState("3.1");
+  const [owner, setOwner] = React.useState("Noura Trabelsi");
+  const [load, setLoad] = React.useState("16");
+  const [start, setStart] = React.useState("2027-01-12");
+  const [end, setEnd] = React.useState("2027-01-19");
+  const [priority, setPriority] = React.useState("Élevée");
+
+  const submit = () => {
+    onCreate({
+      kind: "task",
+      name,
+      owner,
+      start,
+      end,
+      load: Number(load) || 0,
+      anchor: group,
+      critical: priority === "Élevée",
+    });
+    onClose();
+  };
+
   return (
     <Modal
       open={open}
@@ -206,11 +281,11 @@ export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-7 space-y-2.5">
           <Field label="Nom de la tâche" required>
-            <Input defaultValue="Mettre à jour plan de contrôle G3" />
+            <Input defaultValue={name} onChange={(e) => setName(e.target.value)} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Gate" required>
-              <Select defaultValue="3.1">
+              <Select defaultValue={group} onChange={(e) => setGroup(e.target.value)}>
                 <option>3.1</option>
                 <option>3.2</option>
                 <option>4.1</option>
@@ -219,7 +294,11 @@ export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => 
             <Field label="Affectation / Responsable" required>
               <div className="relative">
                 <UserRound className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Select defaultValue="Noura Trabelsi" className="pl-8">
+                <Select
+                  defaultValue={owner}
+                  onChange={(e) => setOwner(e.target.value)}
+                  className="pl-8"
+                >
                   <option>Noura Trabelsi</option>
                   <option>Youssef Jaziri</option>
                 </Select>
@@ -228,13 +307,13 @@ export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => 
           </div>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Charge prévue (h)" required>
-              <Input defaultValue="16" />
+              <Input defaultValue={load} onChange={(e) => setLoad(e.target.value)} />
             </Field>
             <Field label="Date de début" required>
-              <DateInput defaultValue="12/01/2027" />
+              <DateInput defaultValue="12/01/2027" onChange={(e) => setStart(e.target.value)} />
             </Field>
             <Field label="Date de fin prévue" required>
-              <DateInput defaultValue="19/01/2027" />
+              <DateInput defaultValue="19/01/2027" onChange={(e) => setEnd(e.target.value)} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -245,7 +324,7 @@ export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => 
               </Select>
             </Field>
             <Field label="Niveau de priorité" required>
-              <Select defaultValue="Élevée">
+              <Select defaultValue={priority} onChange={(e) => setPriority(e.target.value)}>
                 <option>Élevée</option>
                 <option>Moyenne</option>
                 <option>Faible</option>
@@ -273,8 +352,8 @@ export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => 
         <div className="col-span-5">
           <Card className="p-3.5">
             <p className="mb-2 text-[13px] font-semibold text-foreground">Impact estimé</p>
-            <ImpactRow icon={<Flag className="h-3.5 w-3.5" />} label="Gate" value="G3" tone="red" />
-            <ImpactRow icon={<Clock className="h-3.5 w-3.5" />} label="Charge ajoutée" value="16 h" />
+            <ImpactRow icon={<Flag className="h-3.5 w-3.5" />} label="Gate" value={group} tone="red" />
+            <ImpactRow icon={<Clock className="h-3.5 w-3.5" />} label="Charge ajoutée" value={`${load} h`} />
             <div className="flex items-center gap-2 border-b border-border py-2">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="min-w-0 flex-1 text-[11px] text-muted-foreground">
@@ -302,7 +381,7 @@ export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => 
             <Button variant="ghost" className="border-border" onClick={onClose}>
               Annuler
             </Button>
-            <Button variant="amber" onClick={onClose}>
+            <Button variant="amber" onClick={submit}>
               Créer la tâche
             </Button>
           </div>
@@ -323,7 +402,35 @@ export function AddTaskModal({ open, onClose }: { open: boolean; onClose: () => 
 /*  Image 10 — Ajouter une sous-tâche                                          */
 /* -------------------------------------------------------------------------- */
 
-export function AddSubtaskModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AddSubtaskModal({
+  open,
+  onClose,
+  onCreate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (el: NewElement) => void;
+}) {
+  const parent = "T09 — Réaliser PFMEA process";
+  const [name, setName] = React.useState("Vérifier causes critiques étanchéité");
+  const [owner, setOwner] = React.useState("Youssef Jaziri");
+  const [start, setStart] = React.useState("2027-01-13");
+  const [end, setEnd] = React.useState("2027-01-18");
+  const [load, setLoad] = React.useState("4");
+
+  const submit = () => {
+    onCreate({
+      kind: "subtask",
+      name,
+      owner,
+      start,
+      end,
+      load: Number(load) || 0,
+      anchor: firstTaskId(parent),
+    });
+    onClose();
+  };
+
   return (
     <Modal
       open={open}
@@ -335,28 +442,28 @@ export function AddSubtaskModal({ open, onClose }: { open: boolean; onClose: () 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-7 space-y-2.5">
           <Field label="Tâche parente">
-            <Input defaultValue="T09 — Réaliser PFMEA process" disabled className="bg-muted" />
+            <Input defaultValue={parent} disabled className="bg-muted" />
           </Field>
           <Field label="Libellé de la sous-tâche">
-            <Input defaultValue="Vérifier causes critiques étanchéité" />
+            <Input defaultValue={name} onChange={(e) => setName(e.target.value)} />
           </Field>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Responsable">
-              <Select defaultValue="Youssef Jaziri">
+              <Select defaultValue={owner} onChange={(e) => setOwner(e.target.value)}>
                 <option>Youssef Jaziri</option>
                 <option>Noura Trabelsi</option>
               </Select>
             </Field>
             <Field label="Date de début">
-              <DateInput defaultValue="13/01/2027" />
+              <DateInput defaultValue="13/01/2027" onChange={(e) => setStart(e.target.value)} />
             </Field>
             <Field label="Date de fin prévue">
-              <DateInput defaultValue="18/01/2027" />
+              <DateInput defaultValue="18/01/2027" onChange={(e) => setEnd(e.target.value)} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Charge estimée (h)">
-              <Input defaultValue="4" />
+              <Input defaultValue={load} onChange={(e) => setLoad(e.target.value)} />
             </Field>
             <Field label="Statut initial">
               <Select defaultValue="À faire">
@@ -397,7 +504,7 @@ export function AddSubtaskModal({ open, onClose }: { open: boolean; onClose: () 
               label="Tâche parente"
               value="T09 — Réaliser PFMEA process"
             />
-            <ImpactRow icon={<Clock className="h-3.5 w-3.5" />} label="Charge ajoutée" value="4 h" />
+            <ImpactRow icon={<Clock className="h-3.5 w-3.5" />} label="Charge ajoutée" value={`${load} h`} />
             <ImpactRow icon={<Users className="h-3.5 w-3.5" />} label="Impact capacité" value="+1 %" tone="red" />
             <ImpactRow
               icon={<TrendingUp className="h-3.5 w-3.5" />}
@@ -426,7 +533,7 @@ export function AddSubtaskModal({ open, onClose }: { open: boolean; onClose: () 
             <Button variant="ghost" className="border-border" onClick={onClose}>
               Annuler
             </Button>
-            <Button variant="blue" onClick={onClose}>
+            <Button variant="blue" onClick={submit}>
               Ajouter
             </Button>
           </div>

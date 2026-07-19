@@ -260,7 +260,7 @@ export function DateInput({
         type="button"
         onClick={openPicker}
         aria-label="Ouvrir le calendrier"
-        className="absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground transition-colors hover:text-[#B45F09]"
+        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-muted-foreground transition-colors hover:text-[#B45F09]"
       >
         <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
           <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -271,7 +271,7 @@ export function DateInput({
         ref={ref}
         type="date"
         defaultValue={defaultValue ? frToIso(defaultValue) : undefined}
-        className={cn(CONTROL, "date-field cursor-pointer pl-9", className)}
+        className={cn(CONTROL, "date-field cursor-pointer px-1.5 pl-7", className)}
         {...props}
       />
     </span>
