@@ -5,13 +5,14 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  CalendarDays,
+  Building2,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Gauge,
-  MoreVertical,
-  Target,
+  Globe2,
+  Plus,
+  ShieldCheck,
+  UserPlus,
   Users,
   XCircle,
 } from "lucide-react";
@@ -24,205 +25,219 @@ import {
   Button,
   Card,
   Chip,
-  DateInput,
-  Dot,
   Panel,
-  Select,
+  type ChipTone,
 } from "@/components/ui/primitives";
-import {
-  CAPACITY_RISKS,
-  NEW_PROJECT,
-  NEW_PROJECT_FUNCTIONS,
-  RESOURCE_ALLOCATION,
-} from "@/lib/data";
-import { formatNumber } from "@/lib/utils";
+import { APQP_ROLES, CORE_TEAM, EXTENDED_TEAM } from "@/lib/data";
+
+const ORG_TONE: Record<string, ChipTone> = {
+  Client: "blue",
+  Fournisseur: "amber",
+  Interne: "slate",
+};
 
 export default function Etape2Page() {
   const router = useRouter();
 
+  // Les indicateurs se déduisent des listes : aucune valeur saisie en dur.
+  const totalEtp = CORE_TEAM.reduce((s, m) => s + m.allocation, 0) / 100;
+  const orgs = new Set(EXTENDED_TEAM.map((m) => m.org)).size;
+  const covered = APQP_ROLES.filter((r) => r.holder).length;
+  const missing = APQP_ROLES.filter((r) => !r.holder);
+
   return (
-    <AppShell role="Chef de projet" notifications={3}>
-      <div className="flex h-full flex-col gap-3">
+    <AppShell role="Chef de projet" notifications={8}>
+      <div className="flex h-full flex-col gap-2.5">
         <PageTitle
-          title="Créer un nouveau projet — Étape 2/3"
-          subtitle="Définir les contraintes SOP, les ressources et le rapport charge / capacité"
+          title="Créer un nouveau projet — Étape 2/4"
+          subtitle="Constituer l'équipe projet permanente et l'équipe étendue"
         />
 
         <WizardSteps current={2} />
 
-        {/* Top band */}
         <div className="grid min-h-0 flex-1 grid-cols-12 gap-3">
+          {/* ------------------------------------------------- Core team */}
           <Panel
-            title="Paramètres de planning"
-            icon={<CalendarDays className="h-4 w-4 text-muted-foreground" />}
-            className="col-span-3"
-          >
-            <div className="space-y-2.5">
-              <FieldRow icon={<CalendarDays className="h-3.5 w-3.5" />} label="Kickoff">
-                <DateInput defaultValue={NEW_PROJECT.kickoff} />
-              </FieldRow>
-              <FieldRow icon={<Target className="h-3.5 w-3.5" />} label="SOP cible">
-                <DateInput defaultValue={NEW_PROJECT.sop} />
-              </FieldRow>
-              <FieldRow icon={<CalendarDays className="h-3.5 w-3.5" />} label="Calendrier">
-                <Select defaultValue={NEW_PROJECT.calendar}>
-                  <option>Standard 5/7</option>
-                  <option>Continu 7/7</option>
-                </Select>
-              </FieldRow>
-              <div className="flex items-center gap-2 border-t border-border pt-2.5">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="flex-1 text-[12px] text-foreground">Durée totale estimée</span>
-                <Chip tone="slate" className="text-[12px] font-semibold">
-                  {NEW_PROJECT.duration}
-                </Chip>
-              </div>
-              <div className="flex items-center gap-2">
-                <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="flex-1 text-[12px] text-foreground">Charge globale estimée</span>
-                <Chip tone="slate" className="text-[12px] font-semibold">
-                  {NEW_PROJECT.totalLoad}
-                </Chip>
-              </div>
-            </div>
-          </Panel>
-
-          <Panel
-            title="Aperçu des ressources allouées"
+            title="Équipe projet — core team"
             icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            className="col-span-5"
+            action={
+              <Button className="px-2 py-1 text-[11px]">
+                <UserPlus className="h-3.5 w-3.5" />
+                Ajouter un membre
+              </Button>
+            }
+            className="col-span-7"
             bodyClassName="px-0"
           >
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="px-3.5 py-1.5 font-medium">Fonction</th>
-                  <th className="py-1.5 pr-2 text-right font-medium">Capacité (h)</th>
-                  <th className="py-1.5 pr-2 text-right font-medium">Charge (h)</th>
-                  <th className="px-3.5 py-1.5 font-medium">Charge / Capacité</th>
+                  <th className="px-3.5 py-1.5 font-medium">Membre</th>
+                  <th className="px-2 py-1.5 font-medium">Fonction</th>
+                  <th className="px-2 py-1.5 font-medium">Rôle APQP</th>
+                  <th className="px-2 py-1.5 font-medium">Allocation</th>
+                  <th className="px-3.5 py-1.5 font-medium">Site</th>
                 </tr>
               </thead>
               <tbody>
-                {NEW_PROJECT_FUNCTIONS.map((f) => (
-                  <tr key={f.fn} className="border-b border-border/60 last:border-0">
-                    <td className="px-3.5 py-[7px]">
-                      <span className="flex items-center gap-1.5 text-foreground">
-                        <Dot color={f.color} />
-                        {f.fn}
-                      </span>
-                    </td>
-                    <td className="py-[7px] pr-2 text-right tabular-nums text-muted-foreground">
-                      {formatNumber(f.capacity)} h
-                    </td>
-                    <td className="py-[7px] pr-2 text-right tabular-nums text-muted-foreground">
-                      {formatNumber(f.load)} h
-                    </td>
+                {CORE_TEAM.map((m) => (
+                  <tr key={m.name} className="border-b border-border/60 last:border-0">
                     <td className="px-3.5 py-[7px]">
                       <span className="flex items-center gap-2">
-                        <ProgressBar value={f.ratio} color={f.color} className="flex-1" />
                         <span
-                          className="w-9 shrink-0 text-right font-semibold tabular-nums"
-                          style={{ color: f.color }}
+                          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                          style={{ backgroundColor: m.color }}
                         >
-                          {f.ratio} %
+                          {m.initials}
+                        </span>
+                        <span className="truncate font-medium text-foreground">{m.name}</span>
+                      </span>
+                    </td>
+                    <td className="px-2 py-[7px] text-muted-foreground">{m.fn}</td>
+                    <td className="px-2 py-[7px] text-muted-foreground">{m.role}</td>
+                    <td className="px-2 py-[7px]">
+                      <span className="flex items-center gap-1.5">
+                        <ProgressBar value={m.allocation} color={m.color} className="w-14" />
+                        <span className="w-8 shrink-0 text-right font-semibold tabular-nums text-foreground">
+                          {m.allocation} %
                         </span>
                       </span>
                     </td>
+                    <td className="px-3.5 py-[7px] text-muted-foreground">{m.site}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </Panel>
 
-          <Panel
-            title="Risques de capacité détectés"
-            icon={<AlertTriangle className="h-4 w-4 text-[#D92D20]" />}
-            className="col-span-4"
-          >
-            <ul className="space-y-2.5">
-              {CAPACITY_RISKS.map((r) => (
-                <li key={r.fn} className="rounded-lg border border-border bg-[#FEFAF3] p-2.5">
-                  <div className="flex items-start gap-2">
-                    <Dot color={r.color} className="mt-1.5" />
-                    <p className="min-w-0 flex-1 text-[12px] text-foreground">
-                      <span className="font-semibold">{r.fn}</span> — {r.title}
-                    </p>
-                    <Chip tone={r.level === "Critique" ? "red" : "amber"}>{r.level}</Chip>
-                  </div>
-                  <p className="ml-4 mt-1 text-[11px] text-muted-foreground">{r.impact}</p>
-                  <p className="ml-4 text-[11px] text-muted-foreground">
-                    Recommandation : {r.reco}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </Panel>
+          {/* -------------------------------------------- Extended team */}
+          <div className="col-span-5 flex min-h-0 flex-col gap-3">
+            <Panel
+              title="Extended team"
+              icon={<Globe2 className="h-4 w-4 text-muted-foreground" />}
+              action={
+                <Button className="px-2 py-1 text-[11px]">
+                  <Plus className="h-3.5 w-3.5" />
+                  Ajouter
+                </Button>
+              }
+              className="min-h-0 flex-1"
+              bodyClassName="px-0"
+            >
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="border-b border-border text-left text-muted-foreground">
+                    <th className="px-3.5 py-1.5 font-medium">Contact</th>
+                    <th className="px-2 py-1.5 font-medium">Organisation</th>
+                    <th className="px-2 py-1.5 font-medium">Rôle</th>
+                    <th className="px-3.5 py-1.5 font-medium">Gates</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {EXTENDED_TEAM.map((m) => (
+                    <tr key={m.name} className="border-b border-border/60 last:border-0">
+                      <td className="px-3.5 py-[7px]">
+                        <span className="flex items-center gap-1.5">
+                          <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#F0F2F5] text-[9px] font-bold text-[#475467]">
+                            {m.initials}
+                          </span>
+                          <span className="truncate font-medium text-foreground">{m.name}</span>
+                        </span>
+                      </td>
+                      <td className="px-2 py-[7px]">
+                        <span className="flex min-w-0 flex-col leading-tight">
+                          <span className="truncate text-muted-foreground">{m.org}</span>
+                          <Chip
+                            tone={ORG_TONE[m.orgType]}
+                            className="mt-0.5 w-fit px-1.5 py-0 text-[9px]"
+                          >
+                            {m.orgType}
+                          </Chip>
+                        </span>
+                      </td>
+                      <td className="px-2 py-[7px] text-muted-foreground">{m.role}</td>
+                      <td className="whitespace-nowrap px-3.5 py-[7px] tabular-nums text-muted-foreground">
+                        {m.gates}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Panel>
+
+            <Panel
+              title="Couverture des rôles APQP"
+              icon={<ShieldCheck className="h-4 w-4 text-muted-foreground" />}
+              className="shrink-0"
+            >
+              <div className="flex flex-wrap gap-1.5">
+                {APQP_ROLES.map((r) => (
+                  <span
+                    key={r.role}
+                    title={r.holder ?? "Aucun titulaire désigné"}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                      r.holder
+                        ? "border-[#BBF0CB] bg-[#ECFDF3] text-[#2E7D32]"
+                        : "border-[#FECDCA] bg-[#FEF3F2] text-[#D92D20]"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        r.holder ? "bg-[#2E7D32]" : "bg-[#D92D20]"
+                      }`}
+                    />
+                    {r.role}
+                  </span>
+                ))}
+              </div>
+            </Panel>
+          </div>
         </div>
 
-        {/* Allocation table */}
-        <Panel
-          title="Affectation initiale des ressources"
-          icon={<Users className="h-4 w-4 text-muted-foreground" />}
-          className="min-h-0 flex-1"
-          bodyClassName="px-0"
-        >
-          <table className="w-full text-[11px]">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                {["Ressource", "Fonction", "Taux d'allocation", "Projets en parallèle", "Charge affectée (h)", "Disponibilité (h)", "Charge / Capacité", ""].map((h) => (
-                  <th key={h} className="whitespace-nowrap px-2.5 py-1.5 font-medium first:pl-3.5 last:pr-3.5">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {RESOURCE_ALLOCATION.map((r) => (
-                <tr key={r.name} className="border-b border-border/60 last:border-0">
-                  <td className="py-[7px] pl-3.5 pr-2.5 font-medium text-foreground">{r.name}</td>
-                  <td className="px-2.5 py-[7px]">
-                    <span className="flex items-center gap-1.5 text-foreground">
-                      <Dot color={r.color} />
-                      {r.fn}
-                    </span>
-                  </td>
-                  <td className="px-2.5 py-[7px] tabular-nums text-muted-foreground">{r.rate}</td>
-                  <td className="px-2.5 py-[7px] text-center tabular-nums text-muted-foreground">
-                    {r.parallel}
-                  </td>
-                  <td className="px-2.5 py-[7px] tabular-nums text-muted-foreground">
-                    {formatNumber(r.load)} h
-                  </td>
-                  <td className="px-2.5 py-[7px] tabular-nums text-muted-foreground">
-                    {formatNumber(r.available)} h
-                  </td>
-                  <td className="px-2.5 py-[7px]">
-                    <span className="flex items-center gap-2">
-                      <ProgressBar value={r.ratio} color={r.color} className="w-28" />
-                      <span
-                        className="w-9 shrink-0 text-right font-semibold tabular-nums"
-                        style={{ color: r.color }}
-                      >
-                        {r.ratio} %
-                      </span>
-                    </span>
-                  </td>
-                  <td className="py-[7px] pl-2.5 pr-3.5">
-                    <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Panel>
+        {/* ------------------------------------------------- Indicateurs */}
+        <div className="grid shrink-0 grid-cols-4 gap-2.5">
+          {[
+            {
+              icon: <Users className="h-4 w-4 text-[#B45F09]" />,
+              k: "Membres core team",
+              v: String(CORE_TEAM.length),
+            },
+            {
+              icon: <Gauge className="h-4 w-4 text-[#B45F09]" />,
+              k: "ETP cumulé",
+              v: totalEtp.toFixed(2).replace(".", ","),
+            },
+            {
+              icon: <Building2 className="h-4 w-4 text-[#B45F09]" />,
+              k: "Organisations impliquées",
+              v: String(orgs),
+            },
+            {
+              icon: <ShieldCheck className="h-4 w-4 text-[#B45F09]" />,
+              k: "Rôles APQP couverts",
+              v: `${covered} / ${APQP_ROLES.length}`,
+            },
+          ].map((i) => (
+            <Card key={i.k} className="flex items-center gap-2.5 px-3.5 py-2">
+              {i.icon}
+              <div className="min-w-0 leading-tight">
+                <p className="text-[11px] text-muted-foreground">{i.k}</p>
+                <p className="text-[15px] font-bold tabular-nums text-foreground">{i.v}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
 
-        <Card className="flex shrink-0 items-center gap-2 border-[#F8DEB0] bg-[#FEF6E7] px-3.5 py-2">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-[#E58A00]" />
-          <p className="text-[12px] text-foreground">
-            <span className="font-semibold">Alerte capacité :</span> la fonction Qualité dépasse sa
-            capacité. La fonction Process est proche de la limite.
-          </p>
-        </Card>
+        {missing.length > 0 ? (
+          <Card className="flex shrink-0 items-center gap-2 border-[#F8DEB0] bg-[#FEF6E7] px-3.5 py-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-[#E58A00]" />
+            <p className="text-[12px] text-foreground">
+              <span className="font-semibold">Rôle non pourvu :</span>{" "}
+              {missing.map((r) => r.role).join(", ")}. Le projet peut être créé, mais la gate G0 ne
+              pourra pas être validée tant qu&apos;un titulaire n&apos;est pas désigné.
+            </p>
+          </Card>
+        ) : null}
 
         <div className="flex shrink-0 items-center gap-2.5">
           <Button onClick={() => router.push("/nouveau-projet/etape-1")}>
@@ -237,7 +252,7 @@ export default function Etape2Page() {
             Annuler
           </Button>
           <Button variant="primary" onClick={() => router.push("/nouveau-projet/etape-3")}>
-            Continuer vers Prévisualisation &amp; génération
+            Continuer vers Planning &amp; ressources
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -246,12 +261,12 @@ export default function Etape2Page() {
           hints={[
             {
               action: "Étape précédente",
-              target: "ouvre “Créer un nouveau projet — Étape 1/3”",
+              target: "ouvre “Créer un nouveau projet — Étape 1/4”",
               icon: <ArrowLeft className="h-4 w-4 text-[#B45F09]" />,
             },
             {
-              action: "Continuer vers Prévisualisation & génération",
-              target: "ouvre “Créer un nouveau projet — Étape 3/3”",
+              action: "Continuer vers Planning & ressources",
+              target: "ouvre “Créer un nouveau projet — Étape 3/4”",
               icon: <ChevronRight className="h-4 w-4 text-[#B45F09]" />,
             },
             {
@@ -263,23 +278,5 @@ export default function Etape2Page() {
         />
       </div>
     </AppShell>
-  );
-}
-
-function FieldRow({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-muted-foreground">{icon}</span>
-      <span className="w-[76px] shrink-0 text-[12px] text-foreground">{label}</span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
   );
 }

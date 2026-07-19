@@ -308,6 +308,66 @@ export const NEW_PROJECT = {
   totalLoad: "10 920 h",
 };
 
+/* ------------------------- Équipe projet & extended ----------------------- */
+
+export interface TeamMember {
+  name: string;
+  initials: string;
+  fn: string;
+  /** Rôle tenu dans la démarche APQP, distinct de la fonction métier. */
+  role: string;
+  /** Part du temps affectée au projet, en pourcentage. */
+  allocation: number;
+  site: string;
+  color: string;
+}
+
+/** Équipe pluridisciplinaire permanente, présente à toutes les gates. */
+export const CORE_TEAM: TeamMember[] = [
+  { name: "Leïla Mansour", initials: "LM", fn: "Direction projet", role: "Pilotage APQP", allocation: 60, site: "Sousse", color: "#B45F09" },
+  { name: "Noura Trabelsi", initials: "NT", fn: "Qualité", role: "PFMEA & plan de contrôle", allocation: 45, site: "Sousse", color: "#D92D20" },
+  { name: "Youssef Jaziri", initials: "YJ", fn: "Méthodes / Process", role: "Flux process & outillage", allocation: 50, site: "Sousse", color: "#3976D3" },
+  { name: "Karim Belhadj", initials: "KB", fn: "Industrialisation", role: "Essais & capabilité", allocation: 35, site: "Sousse", color: "#2E7D32" },
+  { name: "Sonia Gharbi", initials: "SG", fn: "Achats", role: "Panel fournisseurs", allocation: 20, site: "Tunis", color: "#7C3AED" },
+  { name: "Mehdi Aloui", initials: "MA", fn: "Logistique", role: "Emballage & flux", allocation: 15, site: "Sousse", color: "#0891B2" },
+  { name: "Rim Bouazizi", initials: "RB", fn: "R&D Produit", role: "Interface design", allocation: 25, site: "Tunis", color: "#E58A00" },
+];
+
+export interface ExtendedMember {
+  name: string;
+  initials: string;
+  org: string;
+  orgType: "Client" | "Fournisseur" | "Interne";
+  role: string;
+  /** Gates auxquelles le contact est convoqué. */
+  gates: string;
+}
+
+/** Contributeurs sollicités ponctuellement, sur certaines gates seulement. */
+export const EXTENDED_TEAM: ExtendedMember[] = [
+  { name: "Thomas Berger", initials: "TB", org: "OEM Alpha", orgType: "Client", role: "SQE client", gates: "G2, G3, G4" },
+  { name: "Claire Fontaine", initials: "CF", org: "OEM Alpha", orgType: "Client", role: "Acheteur programme", gates: "G0, G5" },
+  { name: "Marco Rossi", initials: "MR", org: "Fonderie Lombardia", orgType: "Fournisseur", role: "Fourniture brut aluminium", gates: "G2, G3" },
+  { name: "Anke Weber", initials: "AW", org: "Werkzeug GmbH", orgType: "Fournisseur", role: "Outillage d'injection", gates: "G3" },
+  { name: "Hédi Chaabane", initials: "HC", org: "Usine Sousse", orgType: "Interne", role: "Responsable production", gates: "G4, G5" },
+  { name: "Sami Toumi", initials: "ST", org: "Laboratoire métrologie", orgType: "Interne", role: "Moyens de mesure", gates: "G3, G4" },
+];
+
+/**
+ * Rôles attendus par le référentiel APQP. Un rôle non pourvu est signalé :
+ * c'est le seul écart que l'étape doit faire remonter.
+ */
+export const APQP_ROLES = [
+  { role: "Chef de projet", holder: "Leïla Mansour" },
+  { role: "Qualité", holder: "Noura Trabelsi" },
+  { role: "Méthodes / Process", holder: "Youssef Jaziri" },
+  { role: "Industrialisation", holder: "Karim Belhadj" },
+  { role: "Achats", holder: "Sonia Gharbi" },
+  { role: "Logistique", holder: "Mehdi Aloui" },
+  { role: "R&D Produit", holder: "Rim Bouazizi" },
+  { role: "Maintenance", holder: null },
+];
+
 export interface FunctionLoad {
   fn: string;
   capacity: number;

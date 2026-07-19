@@ -26,7 +26,7 @@ export default function Etape1Page() {
     <AppShell role="Chef de projet" notifications={8}>
       <div className="flex h-full flex-col gap-3">
         <PageTitle
-          title="Créer un nouveau projet — Étape 1/3"
+          title="Créer un nouveau projet — Étape 1/4"
           subtitle="Définir les éléments clés du projet"
         />
 
@@ -134,7 +134,7 @@ export default function Etape1Page() {
                 Retour portefeuille
               </Button>
               <Button variant="primary" onClick={() => router.push("/nouveau-projet/etape-2")}>
-                Continuer vers Planning &amp; ressources
+                Continuer vers Équipe projet
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -144,8 +144,8 @@ export default function Etape1Page() {
         <RouteMap
           hints={[
             {
-              action: "Continuer vers Planning & ressources",
-              target: "ouvre “Créer un nouveau projet — Étape 2/3”",
+              action: "Continuer vers Équipe projet",
+              target: "ouvre “Créer un nouveau projet — Étape 2/4”",
               icon: <ChevronRight className="h-4 w-4 text-[#B45F09]" />,
             },
             {

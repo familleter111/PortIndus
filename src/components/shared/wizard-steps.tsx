@@ -6,12 +6,13 @@ import { cn } from "@/lib/utils";
 
 const STEPS = [
   "Identité du projet",
+  "Équipe projet",
   "Planning & ressources",
   "Prévisualisation & génération",
 ];
 
-/** Three-step header shared by the "Créer un nouveau projet" screens. */
-export function WizardSteps({ current }: { current: 1 | 2 | 3 }) {
+/** Four-step header shared by the "Créer un nouveau projet" screens. */
+export function WizardSteps({ current }: { current: 1 | 2 | 3 | 4 }) {
   return (
     <div className="flex shrink-0 items-center px-4">
       {STEPS.map((label, i) => {
@@ -32,14 +33,14 @@ export function WizardSteps({ current }: { current: 1 | 2 | 3 }) {
             </span>
             <span
               className={cn(
-                "ml-2.5 whitespace-nowrap text-[13px] font-semibold",
+                "ml-2 truncate text-[12px] font-semibold",
                 active ? "text-[#B45F09]" : done ? "text-foreground" : "text-muted-foreground",
               )}
             >
               {label}
             </span>
             {i < STEPS.length - 1 ? (
-              <span className="mx-4 h-px min-w-0 flex-1 bg-border" />
+              <span className="mx-3 h-px min-w-0 flex-1 bg-border" />
             ) : null}
           </div>
         );
