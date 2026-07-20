@@ -25,7 +25,7 @@ export function WizardSteps({ current }: { current: 1 | 2 | 3 | 4 }) {
               className={cn(
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold",
                 done && "bg-[#2E7D32] text-white",
-                active && "bg-[#B45F09] text-white",
+                active && "bg-[#0E7C52] text-white",
                 !done && !active && "border border-border bg-white text-muted-foreground",
               )}
             >
@@ -34,7 +34,7 @@ export function WizardSteps({ current }: { current: 1 | 2 | 3 | 4 }) {
             <span
               className={cn(
                 "ml-2 truncate text-[12px] font-semibold",
-                active ? "text-[#B45F09]" : done ? "text-foreground" : "text-muted-foreground",
+                active ? "text-[#0E7C52]" : done ? "text-foreground" : "text-muted-foreground",
               )}
             >
               {label}

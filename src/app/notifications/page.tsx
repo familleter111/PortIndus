@@ -115,7 +115,7 @@ export default function NotificationsPage() {
               onClick={() => setFilter(f.key)}
               className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-[13px] font-medium transition-colors ${
                 filter === f.key
-                  ? "border-[#E5A11B] bg-white text-[#B45F09]"
+                  ? "border-[#16A46B] bg-white text-[#0E7C52]"
                   : "border-border bg-white text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -186,7 +186,7 @@ export default function NotificationsPage() {
                         <button
                           type="button"
                           onClick={() => openTarget(n.id)}
-                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[#B45F09] hover:underline"
+                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[#0E7C52] hover:underline"
                         >
                           {n.action}
                           <ChevronRight className="h-3.5 w-3.5" />
@@ -239,27 +239,6 @@ export default function NotificationsPage() {
               </ul>
             </Panel>
 
-            <Panel title="Parcours & redirections" className="min-h-0 flex-1">
-              <ol className="space-y-2.5">
-                {[
-                  { a: "Voir le détail", c: "dans “PFMEA process en retard”", t: "ouvre “Vue projet — Dashboard chef de projet”" },
-                  { a: "Ouvrir", c: "dans “Preuve validée”", t: "ouvre “Confirmation de validation”" },
-                  { a: "Consulter", c: "dans “Simulation de replanification prête”", t: "ouvre “Simulation de replanification”" },
-                  { a: "Ouvrir", c: "dans “Surcharge Qualité détectée”", t: "ouvre “Détail conflit de ressources”" },
-                ].map((h, i) => (
-                  <li key={`${h.a}-${i}`} className="flex items-start gap-2">
-                    <span className="mt-px flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-[#F0DFC4] bg-[#FDF4E7] text-[10px] font-bold text-[#B45F09]">
-                      {i + 1}
-                    </span>
-                    <p className="text-[11px] leading-snug text-muted-foreground">
-                      Cliquer sur <span className="font-semibold text-foreground">“{h.a}”</span> {h.c}
-                      <br />
-                      <span className="text-[#B45F09]">→ {h.t}</span>
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            </Panel>
           </div>
         </div>
 

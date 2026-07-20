@@ -13,14 +13,22 @@ export function Button({
   className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
+  /*
+   * `primary` et `amber` portent le vert d'action. Le libellé est en encre et
+   * non en blanc : #5EDE99 est un vert clair, du blanc dessus tomberait à 1,7:1
+   * — illisible. En encre le rapport monte à 10,5:1.
+   *
+   * `outline` garde un texte vert foncé : le vert d'action sur fond blanc donnerait le
+   * même 1,7:1, il ne peut pas servir de couleur de texte.
+   */
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "bg-[#B45F09] text-white hover:bg-[#9A5008] border border-transparent shadow-sm",
+      "bg-[#5EDE99] text-[#101828] hover:bg-[#45C983] border border-transparent shadow-sm",
     amber:
-      "bg-[#E07B18] text-white hover:bg-[#C96C12] border border-transparent shadow-sm",
+      "bg-[#5EDE99] text-[#101828] hover:bg-[#45C983] border border-transparent shadow-sm",
     blue: "bg-[#2563EB] text-white hover:bg-[#1D4ED8] border border-transparent shadow-sm",
     outline:
-      "bg-white text-[#B45F09] border border-[#EFE2CE] hover:bg-[#FDF7EF] shadow-sm",
+      "bg-white text-[#0E7C52] border border-[#BFEFD5] hover:bg-[#F1FCF6] shadow-sm",
     ghost: "bg-transparent text-foreground border border-transparent hover:bg-muted",
   };
   return (
@@ -99,7 +107,7 @@ const CHIP_TONES = {
   green: "bg-[#ECFDF3] text-[#2E7D32] border-[#BBF0CB]",
   blue: "bg-[#EFF6FF] text-[#3976D3] border-[#C7DBF8]",
   slate: "bg-[#F5F6F8] text-[#667085] border-[#E4E7EC]",
-  bronze: "bg-[#FDF4E7] text-[#B45F09] border-[#F0DFC4]",
+  action: "bg-[#E8FBF1] text-[#0E7C52] border-[#BFEFD5]",
 } as const;
 
 export type ChipTone = keyof typeof CHIP_TONES;
@@ -141,7 +149,7 @@ export function Dot({ color, className }: { color: string; className?: string })
 export function Avatar({
   initials,
   className,
-  color = "#B45F09",
+  color = "#0E7C52",
 }: {
   initials: string;
   className?: string;
@@ -164,7 +172,7 @@ export function Avatar({
 
 export function Bar({
   value,
-  color = "#B45F09",
+  color = "#0E7C52",
   className,
   track = "#EFF1F4",
 }: {
@@ -211,7 +219,7 @@ export function Field({
 }
 
 const CONTROL =
-  "h-9 w-full rounded-lg border border-input bg-white px-2.5 text-[12px] text-foreground placeholder:text-muted-foreground focus:border-[#E5A11B] focus:outline-none focus:ring-1 focus:ring-[#E5A11B]";
+  "h-9 w-full rounded-lg border border-input bg-white px-2.5 text-[12px] text-foreground placeholder:text-muted-foreground focus:border-[#16A46B] focus:outline-none focus:ring-1 focus:ring-[#16A46B]";
 
 export function Input({
   className,
@@ -260,7 +268,7 @@ export function DateInput({
         type="button"
         onClick={openPicker}
         aria-label="Ouvrir le calendrier"
-        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-muted-foreground transition-colors hover:text-[#B45F09]"
+        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-muted-foreground transition-colors hover:text-[#0E7C52]"
       >
         <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
           <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -348,7 +356,9 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative flex max-h-[calc(100vh-3rem)] w-full animate-zoom-in flex-col overflow-hidden rounded-2xl bg-white shadow-modal",
+          // Hauteur bornée par le cadre, pas par la fenêtre : sous réduction,
+          // 100vh dépasserait la place disponible et la modale déborderait.
+          "relative flex max-h-[calc(var(--app-h)_-_3rem)] w-full animate-zoom-in flex-col overflow-hidden rounded-2xl bg-white shadow-modal",
           width,
         )}
       >

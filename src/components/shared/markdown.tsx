@@ -25,7 +25,7 @@ function inline(text: string, keyPrefix: string): React.ReactNode[] {
       out.push(
         <code
           key={key}
-          className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-[#B45F09]"
+          className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-[#0E7C52]"
         >
           {token.slice(1, -1)}
         </code>,
@@ -43,7 +43,7 @@ function inline(text: string, keyPrefix: string): React.ReactNode[] {
         <a
           key={key}
           href={href}
-          className="text-[#B45F09] underline underline-offset-2"
+          className="text-[#0E7C52] underline underline-offset-2"
           target={href.startsWith("http") ? "_blank" : undefined}
           rel={href.startsWith("http") ? "noreferrer" : undefined}
         >
@@ -175,7 +175,7 @@ export function Markdown({ source }: { source: string }) {
       blocks.push(
         <blockquote
           key={k}
-          className="my-3 border-l-[3px] border-[#E5A11B] bg-[#FDF4E7]/50 py-2 pl-3 pr-2 text-[12px] leading-relaxed text-muted-foreground"
+          className="my-3 border-l-[3px] border-[#16A46B] bg-[#E8FBF1]/50 py-2 pl-3 pr-2 text-[12px] leading-relaxed text-muted-foreground"
         >
           {inline(buf.join(" "), k)}
         </blockquote>,

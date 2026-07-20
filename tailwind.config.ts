@@ -38,11 +38,20 @@ const config: Config = {
         },
         /* Raw brand palette used by charts, chips and status colours */
         brand: {
-          bronze: "#B45F09",
-          bronzeDark: "#9A5008",
-          gold: "#E5A11B",
+          /* Vert d'action — porte les boutons pleins de toute l'application.
+             Volontairement clair : il se lit avec un texte encre, pas blanc
+             (contraste 10,5:1 contre 1,7:1). Voir le variant `primary`. */
+          action: "#5EDE99",
+          actionDark: "#45C983",
+          actionWash: "#E8FBF1",
+          /* Vert lisible sur blanc (5,3:1) — textes, liens, item de menu actif.
+             #5EDE99 ne peut pas servir de couleur de texte : 1,7:1. */
+          actionInk: "#0E7C52",
+          /* Vert intermédiaire — séries de graphique, bordures actives, focus. */
+          actionMid: "#16A46B",
+          actionLine: "#BFEFD5",
+          /* Ambre conservé pour ce qui signale : retard, alerte, à valider. */
           amber: "#E58A00",
-          wash: "#FDF4E7",
           ink: "#101828",
           slate: "#667085",
           line: "#EAECF0",

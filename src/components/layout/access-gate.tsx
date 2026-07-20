@@ -56,7 +56,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
       {/* L'application reste visible, floutée et inerte, derrière le voile. */}
       <div
         aria-hidden
-        className="pointer-events-none select-none blur-[7px]"
+        className="h-full pointer-events-none select-none blur-[7px]"
         tabIndex={-1}
       >
         {children}
@@ -71,8 +71,8 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
           className="w-full max-w-[380px] rounded-2xl border border-border bg-white p-6 shadow-modal"
         >
           <div className="flex flex-col items-center text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FDF4E7]">
-              <Lock className="h-6 w-6 text-[#B45F09]" />
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E8FBF1]">
+              <Lock className="h-6 w-6 text-[#0E7C52]" />
             </span>
             <h1 id="gate-title" className="mt-3 text-[19px] font-bold text-foreground">
               Accès à la démonstration
@@ -101,7 +101,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
             className={`mt-5 h-10 w-full rounded-lg border bg-white px-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 ${
               error
                 ? "border-[#D92D20] focus:border-[#D92D20] focus:ring-[#D92D20]"
-                : "border-input focus:border-[#E5A11B] focus:ring-[#E5A11B]"
+                : "border-input focus:border-[#16A46B] focus:ring-[#16A46B]"
             }`}
           />
 

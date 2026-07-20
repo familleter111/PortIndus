@@ -4,6 +4,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
+import { appScale } from "@/lib/viewport";
 
 /**
  * Menu contextuel rendu dans un portail. Indispensable ici : les cartes du
@@ -30,7 +31,14 @@ export function FloatingMenu({
 
   React.useEffect(() => setMounted(true), []);
 
-  // On mesure après montage : la hauteur dépend du contenu du menu.
+  /*
+   * On mesure après montage : la hauteur dépend du contenu du menu.
+   *
+   * Le calcul de débordement se fait en pixels écran — `x` / `y` viennent de
+   * `clientX` / `clientY`, et `getBoundingClientRect` comme `innerWidth` sont
+   * dans la même unité. Seul le résultat est reconverti en unités de cadre,
+   * puisque le menu est rendu à l'intérieur de celui-ci.
+   */
   React.useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -40,7 +48,8 @@ export function FloatingMenu({
     let top = y;
     if (left + width > window.innerWidth - margin) left = x - width;
     if (top + height > window.innerHeight - margin) top = y - height;
-    setPos({ left: Math.max(margin, left), top: Math.max(margin, top) });
+    const s = appScale();
+    setPos({ left: Math.max(margin, left) / s, top: Math.max(margin, top) / s });
   }, [x, y, mounted]);
 
   React.useEffect(() => {
@@ -72,13 +81,15 @@ export function FloatingMenu({
           visibility: pos ? "visible" : "hidden",
         }}
         className={cn(
-          "fixed z-[61] max-h-[85vh] overflow-y-auto rounded-lg border border-border bg-white shadow-modal scrollbar-thin",
+          "fixed z-[61] max-h-[calc(var(--app-h)_*_0.85)] overflow-y-auto rounded-lg border border-border bg-white shadow-modal scrollbar-thin",
           className,
         )}
       >
         {children}
       </div>
     </>,
-    document.body,
+    // Dans le cadre et non dans `body` : le menu doit être réduit comme le
+    // reste de la maquette, sinon il s'afficherait à sa taille d'origine.
+    document.getElementById("app-frame") ?? document.body,
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Map } from "lucide-react";
 
 import { Card } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
@@ -67,7 +66,7 @@ const TONES = {
   red: "text-[#D92D20]",
   amber: "text-[#E58A00]",
   green: "text-[#2E7D32]",
-  bronze: "text-[#B45F09]",
+  action: "text-[#0E7C52]",
   blue: "text-[#3976D3]",
 } as const;
 
@@ -100,59 +99,6 @@ export function KpiCard({
       {note ? (
         <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{note}</p>
       ) : null}
-    </Card>
-  );
-}
-
-/* -------------------------- Parcours & redirections ----------------------- */
-
-export interface RouteHint {
-  action: string;
-  target: string;
-  icon?: React.ReactNode;
-}
-
-/**
- * The "Parcours & redirections" strip present on every reference mock: it
- * documents where each call to action leads.
- */
-export function RouteMap({
-  hints,
-  numbered = false,
-  className,
-}: {
-  hints: RouteHint[];
-  numbered?: boolean;
-  className?: string;
-}) {
-  return (
-    <Card className={cn("shrink-0 overflow-hidden", className)}>
-      <div className="flex items-center gap-2 px-3.5 pb-1.5 pt-2.5">
-        <Map className="h-4 w-4 text-muted-foreground" />
-        <span className="text-[13px] font-semibold text-foreground">
-          Parcours &amp; redirections
-        </span>
-      </div>
-      <div className="flex divide-x divide-border px-1 pb-2.5">
-        {hints.map((hint, i) => (
-          <div key={hint.action} className="flex min-w-0 flex-1 items-start gap-2 px-2.5">
-            <span className="mt-0.5 shrink-0">
-              {numbered ? (
-                <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full border border-[#F0DFC4] bg-[#FDF4E7] text-[10px] font-bold text-[#B45F09]">
-                  {i + 1}
-                </span>
-              ) : (
-                hint.icon
-              )}
-            </span>
-            <p className="min-w-0 text-[11px] leading-snug text-muted-foreground">
-              Cliquer sur <span className="font-semibold text-foreground">“{hint.action}”</span>
-              <br />
-              <span className="text-[#B45F09]">→ {hint.target}</span>
-            </p>
-          </div>
-        ))}
-      </div>
     </Card>
   );
 }

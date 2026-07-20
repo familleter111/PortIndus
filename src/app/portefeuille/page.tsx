@@ -1,15 +1,16 @@
 "use client";
 
+import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  BarChart3,
+  ArrowRight,
   Clock,
   Eye,
   Flag,
   Gauge,
-  Plus,
   ShieldCheck,
+  Sparkles,
   Star,
   Target,
   TrendingUp,
@@ -18,7 +19,7 @@ import {
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { KpiCard, PageTitle, RouteMap } from "@/components/shared/page-parts";
+import { KpiCard, PageTitle } from "@/components/shared/page-parts";
 import {
   Bar as ProgressBar,
   Button,
@@ -45,8 +46,12 @@ const KPI_ICONS: Record<string, React.ReactNode> = {
   clock: <Clock className="h-3.5 w-3.5 text-muted-foreground" />,
   shield: <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />,
   users: <Users className="h-3.5 w-3.5 text-muted-foreground" />,
-  star: <Star className="h-3.5 w-3.5 text-[#E5A11B]" />,
+  star: <Star className="h-3.5 w-3.5 text-[#16A46B]" />,
 };
+
+/** Géométrie du tableau projets : deux lignes de texte + padding, et l'en-tête. */
+const TABLE_ROW_H = 42;
+const TABLE_HEAD_H = 31;
 
 const HEALTH_META: Record<Health, { label: string; color: string; tone: "green" | "amber" | "red" }> = {
   green: { label: "Vert", color: "#2E7D32", tone: "green" },
@@ -59,9 +64,13 @@ const HEALTH_META: Record<Health, { label: string; color: string; tone: "green" 
  * the project labels stay locked to their rows at any panel height.
  */
 function ProgressByProject() {
+  // Les cinq projets les plus en retard sur leur plan : au-delà, les barres
+  // deviennent illisibles et la liste complète est sur l'écran « Projets ».
+  const shown = [...PROJECTS].sort((a, b) => a.actual - a.planned - (b.actual - b.planned)).slice(0, 5);
+
   return (
     <div className="flex h-full flex-col justify-between pb-1">
-      {PROJECTS.map((p) => (
+      {shown.map((p) => (
         <div key={p.id} className="flex items-center gap-3">
           <div className="w-[104px] shrink-0 leading-tight">
             <p className="text-[11px] font-semibold text-foreground">{p.id}</p>
@@ -70,7 +79,7 @@ function ProgressByProject() {
           <div className="min-w-0 flex-1 space-y-1.5">
             {[
               { value: p.planned, color: "#3976D3" },
-              { value: p.actual, color: "#B8860B" },
+              { value: p.actual, color: "#16A46B" },
             ].map((b) => (
               <div key={b.color} className="flex items-center gap-1.5">
                 <span
@@ -95,25 +104,95 @@ function ProgressByProject() {
   );
 }
 
+/**
+ * Recommandation de rééquilibrage, déduite du tableau juste au-dessus plutôt
+ * qu'écrite en dur : la fonction en dépassement, les heures à replacer et les
+ * fonctions capables de les absorber sortent tous de CAPACITY_ROWS. Si la
+ * charge change, le conseil change avec elle — il ne peut pas la contredire.
+ */
+function CapacityAdvice() {
+  const advice = React.useMemo(() => {
+    const over = CAPACITY_ROWS.filter((r) => r.load > r.capacity).sort(
+      (a, b) => b.ratio - a.ratio,
+    );
+    if (over.length === 0) return null;
+
+    const worst = over[0];
+    const excess = worst.load - worst.capacity;
+
+    // Donneurs possibles : marge disponible, du plus large au plus étroit.
+    const donors = CAPACITY_ROWS.filter((r) => r.capacity - r.load > 0)
+      .map((r) => ({ fn: r.fn, spare: r.capacity - r.load }))
+      .sort((a, b) => b.spare - a.spare);
+
+    // On ne retient que les donneurs nécessaires pour couvrir le dépassement.
+    const picked: typeof donors = [];
+    let covered = 0;
+    for (const d of donors) {
+      if (covered >= excess) break;
+      picked.push(d);
+      covered += d.spare;
+    }
+
+    return { worst, excess, picked, covered, enough: covered >= excess };
+  }, []);
+
+  if (!advice) return null;
+
+  return (
+    <div className="mt-2 rounded-lg border border-[#BFEFD5] bg-[#F1FCF6] p-2.5">
+      <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#0E7C52]">
+        <Sparkles className="h-3.5 w-3.5" />
+        Recommandation
+      </p>
+      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+        <span className="font-semibold text-foreground">{advice.worst.fn}</span> dépasse sa
+        capacité de{" "}
+        <span className="font-semibold text-[#D92D20]">
+          {formatNumber(advice.excess)} h
+        </span>{" "}
+        ({advice.worst.ratio} %). {advice.enough ? "Le portefeuille " : "Les autres fonctions "}
+        {advice.enough
+          ? `garde ${formatNumber(CAPACITY_TOTAL.capacity - CAPACITY_TOTAL.load)} h de marge globale`
+          : "ne couvrent que partiellement le besoin"}
+        .
+      </p>
+      <ul className="mt-1.5 space-y-0.5">
+        {advice.picked.map((d) => (
+          <li key={d.fn} className="flex items-center gap-1.5 text-[10px]">
+            <ArrowRight className="h-3 w-3 shrink-0 text-[#16A46B]" />
+            <span className="text-muted-foreground">
+              Transférer vers {advice.worst.fn} depuis{" "}
+              <span className="font-semibold text-foreground">{d.fn}</span> — marge{" "}
+              <span className="tabular-nums">{formatNumber(d.spare)} h</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1.5 text-[10px] italic text-muted-foreground">
+        Suggestion automatique — à arbitrer avec les responsables de fonction.
+      </p>
+    </div>
+  );
+}
+
 export default function PortefeuillePage() {
   const router = useRouter();
 
   return (
     <AppShell>
       <div className="flex h-full flex-col gap-3">
+        {/* L'assistant de création reste accessible depuis « Vue projet ». */}
         <PageTitle
           title="Vue globale portefeuille projets"
           subtitle="Pilotage consolidé APQP"
-          action={
-            <Button variant="primary" onClick={() => router.push("/nouveau-projet/etape-1")}>
-              <Plus className="h-4 w-4" />
-              Nouveau projet
-            </Button>
-          }
         />
 
-        {/* KPI row */}
-        <div className="grid shrink-0 grid-cols-8 gap-2.5">
+        {/* KPI row — le nombre de colonnes suit la liste, il n'est pas figé. */}
+        <div
+          className="grid shrink-0 gap-2.5"
+          style={{ gridTemplateColumns: `repeat(${PORTFOLIO_KPIS.length}, minmax(0, 1fr))` }}
+        >
           {PORTFOLIO_KPIS.map((kpi) => (
             <KpiCard
               key={kpi.label}
@@ -134,7 +213,7 @@ export default function PortefeuillePage() {
                   <Dot color="#3976D3" /> Planifié
                 </span>
                 <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <Dot color="#B8860B" /> Réel
+                  <Dot color="#16A46B" /> Réel
                 </span>
               </div>
             }
@@ -232,23 +311,33 @@ export default function PortefeuillePage() {
             <button
               type="button"
               onClick={() => router.push("/planning")}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 text-[11px] font-semibold text-[#B45F09] hover:underline"
+              className="mt-2 flex w-full items-center justify-center gap-1.5 text-[11px] font-semibold text-[#0E7C52] hover:underline"
             >
               <Eye className="h-3.5 w-3.5" />
               Voir surcharge capacité
             </button>
+
+            <CapacityAdvice />
           </Panel>
         </div>
 
-        {/* Projects table */}
+        {/*
+          Projects table — cinq lignes visibles, le reste au défilement. La
+          hauteur est calculée depuis la hauteur de ligne réelle plutôt que
+          fixée à l'œil : elle reste juste si une ligne change de gabarit.
+        */}
         <Card className="shrink-0 overflow-hidden">
+          <div
+            className="overflow-y-auto scrollbar-thin"
+            style={{ maxHeight: `${TABLE_HEAD_H + 5 * TABLE_ROW_H}px` }}
+          >
           <table className="w-full text-[11px]">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border text-left text-muted-foreground">
                 {[
                   "Projet", "Client", "Chef de projet", "Phase actuelle", "SOP (prévision)",
                   "Charge totale", "Planifié", "Réel", "SPI", "Actions en retard",
-                  "Readiness", "Charge Qualité", "Santé", "Prochaine gate",
+                  "Readiness", "Santé", "Prochaine gate",
                 ].map((h) => (
                   <th key={h} className="whitespace-nowrap px-2.5 py-2 font-medium first:pl-3.5 last:pr-3.5">
                     {h}
@@ -260,7 +349,11 @@ export default function PortefeuillePage() {
               {PROJECTS.map((p) => {
                 const health = HEALTH_META[p.health];
                 return (
-                  <tr key={p.id} className="border-b border-border/60 last:border-0">
+                  <tr
+                    key={p.id}
+                    onClick={() => router.push(`/projet/${p.id}`)}
+                    className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-[#FCFCFD]"
+                  >
                     <td className="py-2 pl-3.5 pr-2.5">
                       <span className="flex items-start gap-2">
                         <Dot color={health.color} className="mt-1" />
@@ -273,7 +366,7 @@ export default function PortefeuillePage() {
                     <td className="px-2.5 py-2 text-muted-foreground">{p.client}</td>
                     <td className="px-2.5 py-2">
                       <span className="flex items-center gap-1.5 text-foreground">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FDF4E7] text-[9px] font-bold text-[#B45F09]">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8FBF1] text-[9px] font-bold text-[#0E7C52]">
                           {p.managerInitials}
                         </span>
                         {p.manager}
@@ -290,7 +383,7 @@ export default function PortefeuillePage() {
                     </td>
                     <td className="px-2.5 py-2">
                       <span className="block font-semibold text-foreground">{p.actual} %</span>
-                      <ProgressBar value={p.actual} color="#B8860B" className="mt-1 w-16" />
+                      <ProgressBar value={p.actual} color="#16A46B" className="mt-1 w-16" />
                     </td>
                     <td className={`px-2.5 py-2 font-semibold tabular-nums ${p.spi < 1 ? "text-[#D92D20]" : "text-[#2E7D32]"}`}>
                       {p.spi.toFixed(3).replace(".", ",")}
@@ -301,28 +394,26 @@ export default function PortefeuillePage() {
                     <td className={`px-2.5 py-2 font-semibold tabular-nums ${p.readiness < 50 ? "text-[#D92D20]" : p.readiness < 80 ? "text-[#E58A00]" : "text-[#2E7D32]"}`}>
                       {p.readiness} %
                     </td>
-                    <td className={`px-2.5 py-2 font-semibold tabular-nums ${p.qualityLoad > 100 ? "text-[#D92D20]" : "text-[#2E7D32]"}`}>
-                      {p.qualityLoad} %
-                    </td>
                     <td className="px-2.5 py-2">
                       <Chip tone={health.tone}>
                         <Dot color={health.color} />
                         {health.label}
                       </Chip>
                     </td>
-                    <td className="py-2 pl-2.5 pr-3.5 font-medium text-[#B45F09]">{p.nextGate}</td>
+                    <td className="py-2 pl-2.5 pr-3.5 font-medium text-[#0E7C52]">{p.nextGate}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+          </div>
         </Card>
 
         {/* Actions */}
         <div className="grid shrink-0 grid-cols-4 gap-2.5">
           <Button onClick={() => router.push("/projet")}>
             <Eye className="h-4 w-4" />
-            Voir le détail projet
+            Voir les projets
           </Button>
           <Button onClick={() => router.push("/planning")}>
             <Users className="h-4 w-4" />
@@ -338,14 +429,6 @@ export default function PortefeuillePage() {
           </Button>
         </div>
 
-        <RouteMap
-          hints={[
-            { action: "Voir le détail projet", target: "ouvre “Vue projet — Dashboard chef de projet”", icon: <Eye className="h-3.5 w-3.5 text-[#B45F09]" /> },
-            { action: "Nouveau projet", target: "ouvre “Créer un nouveau projet — Étape 1/3”", icon: <Plus className="h-3.5 w-3.5 text-[#B45F09]" /> },
-            { action: "Voir surcharge capacité", target: "ouvre “Planning détaillé — Risques & conflits”", icon: <Users className="h-3.5 w-3.5 text-[#B45F09]" /> },
-            { action: "Analyser exécution", target: "ouvre “Suivi d'exécution & éléments justificatifs”", icon: <BarChart3 className="h-3.5 w-3.5 text-[#B45F09]" /> },
-          ]}
-        />
       </div>
     </AppShell>
   );

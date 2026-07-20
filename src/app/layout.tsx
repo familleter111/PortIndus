@@ -6,6 +6,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AccessGate } from "@/components/layout/access-gate";
 import { ScenarioProvider } from "@/components/layout/scenario-context";
+import { VIEWPORT_SCRIPT } from "@/lib/viewport";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,9 +36,13 @@ export default async function RootLayout({
   return (
     <html lang="fr" className={inter.variable}>
       <body className="font-sans antialiased">
-        <ScenarioProvider value={scenario}>
-          <AccessGate>{children}</AccessGate>
-        </ScenarioProvider>
+        {/* Dimensionne le cadre avant sa première peinture : pas de saut visuel. */}
+        <script dangerouslySetInnerHTML={{ __html: VIEWPORT_SCRIPT }} />
+        <div id="app-frame">
+          <ScenarioProvider value={scenario}>
+            <AccessGate>{children}</AccessGate>
+          </ScenarioProvider>
+        </div>
       </body>
     </html>
   );

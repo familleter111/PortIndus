@@ -53,7 +53,7 @@ const STATUS_TONE: Record<string, "red" | "blue" | "slate" | "green"> = {
 
 const OWNER_COLOR: Record<string, string> = {
   "Youssef Jaziri": "#3976D3",
-  "Noura Trabelsi": "#B45F09",
+  "Noura Trabelsi": "#0E7C52",
   "Karim Belhadj": "#2E7D32",
 };
 
@@ -150,7 +150,7 @@ export const COLUMNS: Column[] = [
         <span
           className={`inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border text-[9px] font-bold ${
             r.gateTone === "amber"
-              ? "border-[#E58A00] bg-[#FEF6E7] text-[#B45F09]"
+              ? "border-[#E58A00] bg-[#FEF6E7] text-[#0E7C52]"
               : "border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]"
           }`}
         >
@@ -245,8 +245,8 @@ export function WbsTable({
                     aria-expanded={configOpen}
                     aria-label="Configurer les colonnes affichées"
                     title="Configurer les colonnes affichées"
-                    className={`rounded p-1 transition-colors hover:bg-muted hover:text-[#B45F09] ${
-                      configOpen ? "bg-muted text-[#B45F09]" : "text-muted-foreground"
+                    className={`rounded p-1 transition-colors hover:bg-muted hover:text-[#0E7C52] ${
+                      configOpen ? "bg-muted text-[#0E7C52]" : "text-muted-foreground"
                     }`}
                   >
                     <Settings2 className="h-3.5 w-3.5" />
@@ -272,7 +272,7 @@ export function WbsTable({
                                   checked={on}
                                   disabled={c.locked}
                                   onChange={() => toggle(c.key)}
-                                  className="h-3.5 w-3.5 shrink-0 rounded border-input accent-[#B45F09]"
+                                  className="h-3.5 w-3.5 shrink-0 rounded border-input accent-[#0E7C52]"
                                 />
                                 <span className={on ? "text-foreground" : "text-muted-foreground"}>
                                   {c.label}
@@ -285,7 +285,7 @@ export function WbsTable({
                       <button
                         type="button"
                         onClick={() => onVisibleChange(DEFAULT_VISIBLE)}
-                        className="mt-1 w-full border-t border-border px-3 pb-0.5 pt-1.5 text-left text-[11px] text-muted-foreground transition-colors hover:text-[#B45F09]"
+                        className="mt-1 w-full border-t border-border px-3 pb-0.5 pt-1.5 text-left text-[11px] text-muted-foreground transition-colors hover:text-[#0E7C52]"
                       >
                         Réinitialiser l&apos;affichage
                       </button>
@@ -314,7 +314,7 @@ export function WbsTable({
                         onClick={() => toggle(c.key)}
                         aria-label={`Masquer la colonne ${c.label}`}
                         title={`Masquer la colonne ${c.label}`}
-                        className="absolute -right-1 top-1/2 -translate-y-1/2 text-[#D0D5DD] transition-colors hover:text-[#B45F09]"
+                        className="absolute -right-1 top-1/2 -translate-y-1/2 text-[#D0D5DD] transition-colors hover:text-[#0E7C52]"
                       >
                         <EyeGlyph />
                       </button>
@@ -367,7 +367,7 @@ export function WbsTable({
                                 onToggleCollapse(r.wbs);
                               }}
                               aria-label={isCollapsed ? "Déplier" : "Replier"}
-                              className="shrink-0 rounded text-muted-foreground transition-colors hover:text-[#B45F09]"
+                              className="shrink-0 rounded text-muted-foreground transition-colors hover:text-[#0E7C52]"
                             >
                               {isCollapsed ? (
                                 <ChevronRight className="h-3.5 w-3.5" />
@@ -409,7 +409,7 @@ export function WbsTable({
                                 : { wbs: r.wbs, x: b.right, y: b.bottom + 4 },
                             );
                           }}
-                          className={`absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground transition-opacity hover:bg-muted hover:text-[#B45F09] ${
+                          className={`absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground transition-opacity hover:bg-muted hover:text-[#0E7C52] ${
                             rowMenu?.wbs === r.wbs
                               ? "opacity-100"
                               : "opacity-0 focus:opacity-100 group-hover/row:opacity-100"
@@ -451,7 +451,7 @@ export function WbsTable({
                 <button
                   type="button"
                   onClick={onAddRow}
-                  className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-[#B45F09]"
+                  className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-[#0E7C52]"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Ajouter une ligne
@@ -523,7 +523,7 @@ function RowMenu({
               style={{ backgroundColor: STATUS_DOT[s] }}
             />
             <span className="flex-1">{s}</span>
-            {row.status === s ? <Check className="h-3 w-3 shrink-0 text-[#B45F09]" /> : null}
+            {row.status === s ? <Check className="h-3 w-3 shrink-0 text-[#0E7C52]" /> : null}
           </button>
         ))}
 
@@ -536,7 +536,7 @@ function RowMenu({
               onClick={() => onAction({ kind: "progress", value: p })}
               className={`flex-1 rounded-md py-1 text-[10px] font-semibold tabular-nums transition-colors ${
                 row.progress === p
-                  ? "bg-[#B45F09] text-white"
+                  ? "bg-[#5EDE99] text-[#101828]"
                   : "border border-border text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -558,7 +558,7 @@ function RowMenu({
               onClick={() => onAction({ kind: "shape", value: s.v })}
               className={`rounded-md py-1 text-[10px] font-semibold transition-colors ${
                 shape === s.v
-                  ? "bg-[#E58A00] text-white"
+                  ? "bg-[#5EDE99] text-[#101828]"
                   : "border border-border text-muted-foreground hover:bg-muted"
               }`}
             >

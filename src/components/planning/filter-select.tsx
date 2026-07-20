@@ -52,7 +52,7 @@ export function FilterSelect({
         className={cn(
           "flex h-8 shrink-0 items-center rounded-lg border text-[12px] transition-colors",
           active
-            ? "border-[#E5A11B] bg-[#FEF6E7] text-[#B45F09]"
+            ? "border-[#16A46B] bg-[#FEF6E7] text-[#0E7C52]"
             : "border-input bg-white hover:border-[#D8DCE3]",
         )}
       >
@@ -63,7 +63,7 @@ export function FilterSelect({
           aria-expanded={anchor !== null}
           className="flex h-full items-center gap-1.5 rounded-l-lg pl-2.5 pr-1.5"
         >
-          <span className={cn(active ? "text-[#B45F09]/70" : "text-muted-foreground")}>
+          <span className={cn(active ? "text-[#0E7C52]/70" : "text-muted-foreground")}>
             {label}
           </span>
           {selected?.dot ? (
@@ -85,7 +85,7 @@ export function FilterSelect({
             onClick={() => onChange(null)}
             aria-label={`Retirer le filtre ${label}`}
             title={`Retirer le filtre ${label}`}
-            className="flex h-full items-center rounded-r-lg pl-0.5 pr-2 text-[#B45F09]/60 transition-colors hover:text-[#B45F09]"
+            className="flex h-full items-center rounded-r-lg pl-0.5 pr-2 text-[#0E7C52]/60 transition-colors hover:text-[#0E7C52]"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -159,11 +159,11 @@ function Option({
         empty
           ? "cursor-not-allowed text-muted-foreground/60"
           : "hover:bg-muted",
-        selected ? "font-semibold text-[#B45F09]" : "text-foreground",
+        selected ? "font-semibold text-[#0E7C52]" : "text-foreground",
       )}
     >
       <Check
-        className={cn("h-3.5 w-3.5 shrink-0", selected ? "text-[#B45F09]" : "opacity-0")}
+        className={cn("h-3.5 w-3.5 shrink-0", selected ? "text-[#0E7C52]" : "opacity-0")}
       />
       {dot ? (
         <span

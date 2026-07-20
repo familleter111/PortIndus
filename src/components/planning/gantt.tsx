@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { FloatingMenu } from "@/components/planning/floating-menu";
+import { appScale } from "@/lib/viewport";
 import {
   DEP_TYPES,
   NON_WORKING,
@@ -239,7 +240,7 @@ function barTone(row: PlanRow) {
   if (row.critical || row.status === "En retard")
     return { track: "#FCE0DE", fill: "#D92D20", edge: "#F2A9A3", text: "#B42318" };
   if (row.status === "En cours" || row.progress > 0)
-    return { track: "#FCE6C8", fill: "#E58A00", edge: "#EDBE7C", text: "#B45F09" };
+    return { track: "#FCE6C8", fill: "#E58A00", edge: "#EDBE7C", text: "#0E7C52" };
   // Non démarrée : un gris franc plutôt que du blanc, sinon la barre disparaît.
   return { track: "#EDEFF3", fill: "#B7BEC9", edge: "#C7CDD6", text: "#667085" };
 }
@@ -402,7 +403,9 @@ export function GanttChart({
   React.useEffect(() => {
     if (!drag) return;
     const onMove = (e: MouseEvent) => {
-      const delta = Math.round((e.clientX - drag.x0) / dayW);
+      // `clientX` est en pixels écran, `dayW` en pixels de maquette : sans le
+      // facteur d'échelle, la barre suivrait la souris trop vite.
+      const delta = Math.round((e.clientX - drag.x0) / (dayW * appScale()));
       if (delta !== drag.delta) setDrag({ ...drag, delta });
     };
     const onUp = () => {
@@ -427,9 +430,14 @@ export function GanttChart({
   React.useEffect(() => {
     if (!linkDrag) return;
     const onMove = (e: MouseEvent) => {
-      const delta = e.clientX - linkDrag.x0;
+      // Converti dès la mesure : `delta` sert ensuite de décalage de tracé,
+      // exprimé en pixels de maquette.
+      const s = appScale();
+      const delta = (e.clientX - linkDrag.x0) / s;
       const moved =
-        linkDrag.moved || Math.abs(delta) > 4 || Math.abs(e.clientY - linkDrag.y0) > 4;
+        linkDrag.moved ||
+        Math.abs(delta) > 4 ||
+        Math.abs((e.clientY - linkDrag.y0) / s) > 4;
       if (delta !== linkDrag.delta || moved !== linkDrag.moved) {
         setLinkDrag({ ...linkDrag, delta, moved });
       }
@@ -462,7 +470,8 @@ export function GanttChart({
   /** Date sous le curseur, pour créer une tâche à l'endroit cliqué. */
   const dateAt = (e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    return shiftIso(WINDOW_START, Math.max(0, Math.floor((e.clientX - rect.left) / dayW)));
+    const offset = (e.clientX - rect.left) / appScale();
+    return shiftIso(WINDOW_START, Math.max(0, Math.floor(offset / dayW)));
   };
 
   /**
@@ -492,7 +501,11 @@ export function GanttChart({
     const onMove = (e: MouseEvent) => {
       const r = bodyRef.current?.getBoundingClientRect();
       if (!r) return;
-      setLinking((l) => (l ? { ...l, cx: e.clientX - r.left, cy: e.clientY - r.top } : l));
+      // cx / cy alimentent le SVG : ils doivent être en pixels de maquette.
+      const s = appScale();
+      setLinking((l) =>
+        l ? { ...l, cx: (e.clientX - r.left) / s, cy: (e.clientY - r.top) / s } : l,
+      );
     };
     const onUp = () => setLinking(null);
     const onKey = (e: KeyboardEvent) => {
@@ -866,7 +879,7 @@ export function GanttChart({
                       <span
                         onMouseUp={(e) => finishLink(e, row)}
                         className={`block h-3 w-3 -translate-x-1/2 rotate-45 rounded-[2px] ring-2 ring-white ${
-                          active ? "outline outline-2 outline-offset-1 outline-[#B45F09]" : ""
+                          active ? "outline outline-2 outline-offset-1 outline-[#0E7C52]" : ""
                         }`}
                         style={{ backgroundColor: row.gateTone === "blue" ? "#2563EB" : "#E58A00" }}
                       />
@@ -895,7 +908,7 @@ export function GanttChart({
                           width: w,
                           height: 16,
                           backgroundColor: tone.track,
-                          borderColor: active ? "#B45F09" : tone.edge,
+                          borderColor: active ? "#0E7C52" : tone.edge,
                         }}
                         onMouseDown={(e) => startDrag(e, row, "move")}
                         onMouseUp={(e) => finishLink(e, row)}
@@ -977,7 +990,7 @@ export function GanttChart({
                             e.currentTarget.blur();
                           }
                         }}
-                        className="h-6 w-48 rounded-md border border-[#E5A11B] bg-white px-1.5 text-[10px] text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E5A11B]/40"
+                        className="h-6 w-48 rounded-md border border-[#16A46B] bg-white px-1.5 text-[10px] text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-[#16A46B]/40"
                       />
                     </span>
                   ) : (
@@ -1058,7 +1071,7 @@ export function GanttChart({
                       onClick={() => run(s.a)}
                       className={`rounded-md py-1 text-[10px] font-semibold transition-colors ${
                         shape === s.a
-                          ? "bg-[#B45F09] text-white"
+                          ? "bg-[#5EDE99] text-[#101828]"
                           : "border border-border text-muted-foreground hover:bg-muted"
                       }`}
                     >
@@ -1125,7 +1138,7 @@ export function GanttChart({
                 }}
                 title={t.hint}
                 className={`flex w-full items-center gap-2 px-3 py-1 text-left text-[11px] transition-colors hover:bg-muted ${
-                  menu.type === t.key ? "text-[#B45F09]" : "text-foreground"
+                  menu.type === t.key ? "text-[#0E7C52]" : "text-foreground"
                 }`}
               >
                 <span className="w-6 shrink-0 font-bold tabular-nums">{t.key}</span>
@@ -1219,7 +1232,7 @@ function SummaryBar({ left, width, active }: { left: number; width: number; acti
   return (
     <span
       className={`absolute top-[9px] block ${
-        active ? "outline outline-2 outline-offset-2 outline-[#B45F09]" : ""
+        active ? "outline outline-2 outline-offset-2 outline-[#0E7C52]" : ""
       }`}
       style={{ left, width }}
     >

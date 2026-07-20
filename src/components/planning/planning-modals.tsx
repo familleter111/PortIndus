@@ -63,22 +63,6 @@ function firstTaskId(text: string): string {
   return /T\d+/.exec(text)?.[0] ?? "";
 }
 
-function HintBar({ hints }: { hints: { a: string; t: string }[] }) {
-  return (
-    <Card className="mt-3 flex items-start gap-2.5 bg-[#F5F8FF] p-2.5">
-      <Info className="mt-px h-4 w-4 shrink-0 text-[#3976D3]" />
-      <div className="space-y-0.5">
-        {hints.map((h) => (
-          <p key={h.a} className="text-[11px] text-muted-foreground">
-            Cliquer sur <span className="font-semibold text-foreground">“{h.a}”</span>
-            <span className="text-[#3976D3]"> → {h.t}</span>
-          </p>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
 function ImpactRow({
   icon,
   label,
@@ -225,12 +209,6 @@ export function AddMilestoneModal({
         </div>
       </div>
 
-      <HintBar
-        hints={[
-          { a: "Ajouter le jalon", t: "met à jour “Planning détaillé — Risques & conflits”" },
-          { a: "Annuler", t: "retourne à “Planning détaillé — Risques & conflits”" },
-        ]}
-      />
     </Modal>
   );
 }
@@ -388,12 +366,6 @@ export function AddTaskModal({
         </div>
       </div>
 
-      <HintBar
-        hints={[
-          { a: "Créer la tâche", t: "met à jour “Planning détaillé — Risques & conflits”" },
-          { a: "Annuler", t: "retourne à “Planning détaillé — Risques & conflits”" },
-        ]}
-      />
     </Modal>
   );
 }
@@ -515,20 +487,7 @@ export function AddSubtaskModal({
           </Card>
         </div>
 
-        <div className="col-span-12 flex items-start gap-3">
-          <Card className="flex min-w-0 flex-1 items-start gap-2.5 bg-[#F5F8FF] p-2.5">
-            <Info className="mt-px h-4 w-4 shrink-0 text-[#3976D3]" />
-            <div className="space-y-0.5">
-              <p className="text-[11px] text-muted-foreground">
-                Cliquer sur <span className="font-semibold text-foreground">“Ajouter”</span>
-                <span className="text-[#3976D3]"> → met à jour “Planning détaillé — Risques & conflits”</span>
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Cliquer sur <span className="font-semibold text-foreground">“Annuler”</span>
-                <span className="text-[#3976D3]"> → retourne à “Planning détaillé — Risques & conflits”</span>
-              </p>
-            </div>
-          </Card>
+        <div className="col-span-12 flex items-start justify-end gap-3">
           <div className="flex shrink-0 gap-2.5">
             <Button variant="ghost" className="border-border" onClick={onClose}>
               Annuler
@@ -575,7 +534,7 @@ export function ResourceConflictModal({
         <Card className="col-span-3 p-3.5">
           <p className="mb-2.5 text-[12px] font-semibold text-foreground">Ressource en surcharge</p>
           <div className="flex flex-col items-center text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FDF4E7] text-[16px] font-bold text-[#B45F09]">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E8FBF1] text-[16px] font-bold text-[#0E7C52]">
               {c.initials}
             </span>
             <p className="mt-2 text-[13px] font-semibold text-foreground">{c.resource}</p>
@@ -661,7 +620,7 @@ export function ResourceConflictModal({
               <label
                 key={s.id}
                 className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2 transition-colors ${
-                  choice === s.id ? "border-[#E5A11B] bg-[#FDF7EF]" : "border-transparent hover:bg-muted"
+                  choice === s.id ? "border-[#16A46B] bg-[#F1FCF6]" : "border-transparent hover:bg-muted"
                 }`}
               >
                 <input
@@ -669,7 +628,7 @@ export function ResourceConflictModal({
                   name="solution"
                   checked={choice === s.id}
                   onChange={() => setChoice(s.id)}
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[#B45F09]"
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[#0E7C52]"
                 />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
@@ -692,7 +651,7 @@ export function ResourceConflictModal({
             ))}
           </div>
 
-          <div className="mt-2.5 space-y-1 rounded-lg bg-[#FDF4E7] p-2">
+          <div className="mt-2.5 space-y-1 rounded-lg bg-[#E8FBF1] p-2">
             {c.outcome.map((o) => (
               <div key={o.label} className="flex items-center gap-1.5 text-[10px]">
                 {o.label.includes("Impact") ? <Clock className="h-3 w-3 text-muted-foreground" /> : null}
@@ -718,26 +677,6 @@ export function ResourceConflictModal({
           </Button>
         </div>
 
-        <Card className="col-span-12 bg-[#FEFAF3] p-2.5">
-          <div className="flex gap-6">
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground">
-              <ClipboardList className="mt-px h-3.5 w-3.5 shrink-0 text-[#B45F09]" />
-              <span>
-                Cliquer sur <span className="font-semibold text-foreground">“Appliquer la solution”</span>
-                <br />
-                met à jour “Planning détaillé — Risques &amp; conflits”
-              </span>
-            </p>
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground">
-              <ArrowRight className="mt-px h-3.5 w-3.5 shrink-0 text-[#B45F09]" />
-              <span>
-                Cliquer sur <span className="font-semibold text-foreground">“Annuler”</span>
-                <br />
-                retourne à “Planning détaillé — Risques &amp; conflits”
-              </span>
-            </p>
-          </div>
-        </Card>
       </div>
     </Modal>
   );
@@ -758,13 +697,13 @@ export function SimulationModal({ open, onClose }: { open: boolean; onClose: () 
       title="Simulation de replanification"
       subtitle="Comparer les scénarios avant application au planning APQP"
       icon={
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FDF4E7]">
-          <LineChart className="h-5 w-5 text-[#B45F09]" />
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#E8FBF1]">
+          <LineChart className="h-5 w-5 text-[#0E7C52]" />
         </span>
       }
     >
-      <Card className="mb-3 flex items-center gap-2 bg-[#FDF4E7] px-3 py-2">
-        <ClipboardList className="h-4 w-4 text-[#B45F09]" />
+      <Card className="mb-3 flex items-center gap-2 bg-[#E8FBF1] px-3 py-2">
+        <ClipboardList className="h-4 w-4 text-[#0E7C52]" />
         <span className="text-[12px] text-foreground">
           Scénario sélectionné : <span className="font-semibold">{s.scenario}</span>
         </span>
@@ -856,15 +795,15 @@ export function SimulationModal({ open, onClose }: { open: boolean; onClose: () 
         <MiniGantt title="Après" ticks={s.ticks} t09={[2, 40]} t10={[54, 94]} className="col-span-5" />
 
         {/* Analysis */}
-        <Card className="col-span-12 border-[#F0DFC4] bg-[#FEFAF3] p-3">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#B45F09]">
+        <Card className="col-span-12 border-[#BFEFD5] bg-[#F1FCF6] p-3">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0E7C52]">
             <RefreshCw className="h-3.5 w-3.5" />
             Analyse automatique
           </p>
           <ul className="space-y-1">
             {s.analysis.map((a) => (
               <li key={a} className="flex items-start gap-2 text-[11px] text-foreground">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#B45F09]" />
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#0E7C52]" />
                 {a}
               </li>
             ))}
@@ -880,27 +819,6 @@ export function SimulationModal({ open, onClose }: { open: boolean; onClose: () 
           </Button>
         </div>
 
-        <Card className="col-span-12 bg-[#FEFAF3] p-2.5">
-          <div className="flex gap-6">
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground">
-              <ClipboardList className="mt-px h-3.5 w-3.5 shrink-0 text-[#B45F09]" />
-              <span>
-                Cliquer sur{" "}
-                <span className="font-semibold text-foreground">“Appliquer la replanification”</span>
-                <br />
-                met à jour “Planning détaillé — Risques &amp; conflits”
-              </span>
-            </p>
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground">
-              <ArrowRight className="mt-px h-3.5 w-3.5 shrink-0 text-[#B45F09]" />
-              <span>
-                Cliquer sur <span className="font-semibold text-foreground">“Annuler”</span>
-                <br />
-                retourne à “Planning détaillé — Risques &amp; conflits”
-              </span>
-            </p>
-          </div>
-        </Card>
       </div>
     </Modal>
   );
@@ -935,7 +853,7 @@ function MiniGantt({
       </div>
       {[
         { id: "T09", label: "Réaliser PFMEA process", range: t09, color: "#D92D20" },
-        { id: "T10", label: "Élaborer plan de contrôle pré-lancement", range: t10, color: "#E5A11B" },
+        { id: "T10", label: "Élaborer plan de contrôle pré-lancement", range: t10, color: "#16A46B" },
       ].map((row) => (
         <div key={row.id} className="flex items-center py-1.5">
           <div className="w-[92px] shrink-0 pr-2 leading-tight">
@@ -960,7 +878,7 @@ function MiniGantt({
           T09
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-3.5 rounded-[2px] bg-[#E5A11B]" />
+          <span className="h-2 w-3.5 rounded-[2px] bg-[#16A46B]" />
           T10
         </span>
       </div>

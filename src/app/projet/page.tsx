@@ -1,469 +1,417 @@
 "use client";
 
+import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  Building2,
-  CalendarDays,
-  CheckCircle2,
+  CalendarClock,
   Clock,
-  FileText,
-  Flag,
+  Eye,
   FolderClosed,
   Gauge,
-  Layers,
-  LineChart,
   Plus,
+  Search,
   ShieldCheck,
-  Tag,
-  Target,
   TrendingUp,
-  UserRound,
-  Users,
 } from "lucide-react";
-import {
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart as ReLineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { InfoStrip, KpiCard, PageTitle } from "@/components/shared/page-parts";
+import { KpiCard, PageTitle } from "@/components/shared/page-parts";
 import {
   Bar as ProgressBar,
   Button,
   Card,
   Chip,
   Dot,
+  Input,
   Panel,
+  Select,
 } from "@/components/ui/primitives";
 import {
-  ACTION_SPLIT,
-  APQP_GATES,
-  CRITICAL_ALERTS,
-  DELIVERABLES,
-  PROJECT,
-  PROJECT_ALERTS,
-  PROJECT_DECISIONS,
-  PROJECT_GATE,
-  PROJECT_KPIS,
-  S_CURVE,
+  PHASE_SPLIT,
+  PORTFOLIO_TOTALS,
+  PROJECTS,
+  type Health,
+  type Project,
 } from "@/lib/data";
+import { formatNumber } from "@/lib/utils";
 
-const KPI_ICONS: Record<string, React.ReactNode> = {
-  gauge: <Gauge className="h-3.5 w-3.5 text-muted-foreground" />,
-  target: <Target className="h-3.5 w-3.5 text-muted-foreground" />,
-  trend: <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />,
-  clock: <Clock className="h-3.5 w-3.5 text-[#D92D20]" />,
-  check: <CheckCircle2 className="h-3.5 w-3.5 text-[#2E7D32]" />,
-  alert: <AlertTriangle className="h-3.5 w-3.5 text-[#E58A00]" />,
-  users: <Users className="h-3.5 w-3.5 text-muted-foreground" />,
-  shield: <ShieldCheck className="h-3.5 w-3.5 text-[#E58A00]" />,
+const HEALTH_META: Record<Health, { label: string; color: string; tone: "green" | "amber" | "red" }> = {
+  green: { label: "Vert", color: "#2E7D32", tone: "green" },
+  orange: { label: "Orange", color: "#E58A00", tone: "amber" },
+  red: { label: "Rouge", color: "#D92D20", tone: "red" },
 };
 
-const DELIVERABLE_TONE: Record<string, "green" | "amber" | "blue"> = {
-  Approuvé: "green",
-  "En cours": "amber",
-  "En revue": "blue",
-};
+/** Colonnes triables — la clé est celle du projet, pas un libellé. */
+type SortKey = "id" | "sop" | "actual" | "spi" | "readiness" | "driftDays" | "workload";
 
-const TABS = ["Synthèse", "Planning", "Exécution", "Livrables"];
+const COLUMNS: { key: SortKey | null; label: string; align?: "right" }[] = [
+  { key: "id", label: "Projet" },
+  { key: null, label: "Client" },
+  { key: null, label: "Chef de projet" },
+  { key: null, label: "Phase actuelle" },
+  { key: "sop", label: "SOP (prévision)" },
+  { key: "workload", label: "Charge totale" },
+  { key: null, label: "Planifié" },
+  { key: "actual", label: "Réel" },
+  { key: "spi", label: "SPI" },
+  { key: null, label: "Actions en retard" },
+  { key: "readiness", label: "Readiness" },
+  { key: "driftDays", label: "Dérive" },
+  { key: null, label: "Santé" },
+  { key: null, label: "Prochaine gate" },
+  { key: null, label: "" },
+];
 
-export default function ProjetPage() {
+/** "05/07/2027" → 20270705, comparable numériquement. */
+function dateKey(fr: string): number {
+  const [d, m, y] = fr.split("/");
+  return Number(`${y}${m}${d}`);
+}
+
+export default function ProjetsPage() {
   const router = useRouter();
+
+  const [query, setQuery] = React.useState("");
+  const [healthFilter, setHealthFilter] = React.useState("Santé");
+  const [phaseFilter, setPhaseFilter] = React.useState("Phase");
+  const [clientFilter, setClientFilter] = React.useState("Client");
+  const [sort, setSort] = React.useState<{ key: SortKey; desc: boolean }>({
+    key: "driftDays",
+    desc: true,
+  });
+
+  const clients = React.useMemo(
+    () => Array.from(new Set(PROJECTS.map((p) => p.client))).sort(),
+    [],
+  );
+
+  const rows = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const kept = PROJECTS.filter((p) => {
+      if (q && !`${p.id} ${p.name} ${p.client} ${p.manager}`.toLowerCase().includes(q)) {
+        return false;
+      }
+      if (healthFilter !== "Santé" && HEALTH_META[p.health].label !== healthFilter) return false;
+      if (phaseFilter !== "Phase" && p.phase !== phaseFilter) return false;
+      if (clientFilter !== "Client" && p.client !== clientFilter) return false;
+      return true;
+    });
+
+    // Les dates se comparent sur leur clé numérique, pas sur la chaîne « jj/mm ».
+    const value = (p: Project) => (sort.key === "sop" ? dateKey(p.sop) : p[sort.key]);
+    return [...kept].sort((a, b) => {
+      const va = value(a);
+      const vb = value(b);
+      if (typeof va === "string" || typeof vb === "string") {
+        return sort.desc
+          ? String(vb).localeCompare(String(va))
+          : String(va).localeCompare(String(vb));
+      }
+      return sort.desc ? vb - va : va - vb;
+    });
+  }, [query, healthFilter, phaseFilter, clientFilter, sort]);
+
+  const toggleSort = (key: SortKey) =>
+    setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: true }));
 
   return (
     <AppShell>
-      <div className="flex h-full flex-col gap-2.5">
+      <div className="flex h-full flex-col gap-3">
         <PageTitle
-          title="Vue projet — Dashboard chef de projet"
-          subtitle="Pilotage détaillé du projet APQP"
+          title="Projets"
+          subtitle="Vue globale de tous les projets APQP en cours"
           action={
-            <Button>
-              <UserRound className="h-4 w-4" />
-              Chef de projet
+            <Button variant="primary" onClick={() => router.push("/nouveau-projet/etape-1")}>
+              <Plus className="h-4 w-4" />
+              Créer un projet
             </Button>
           }
         />
 
-        <InfoStrip
-          items={[
-            { icon: <Tag className="h-4 w-4 text-muted-foreground" />, label: "Code projet", value: PROJECT.id },
-            { icon: <FileText className="h-4 w-4 text-muted-foreground" />, label: "Nom du projet", value: PROJECT.name },
-            { icon: <Building2 className="h-4 w-4 text-muted-foreground" />, label: "Client", value: PROJECT.client },
-            { icon: <Layers className="h-4 w-4 text-muted-foreground" />, label: "Phase actuelle", value: <span className="text-[#3976D3]">{PROJECT.phase}</span> },
-            { icon: <Dot color="#E58A00" className="h-3 w-3" />, label: "Santé projet", value: <span className="text-[#E58A00]">Orange</span> },
-            { icon: <UserRound className="h-4 w-4 text-muted-foreground" />, label: "Chef de projet", value: PROJECT.manager },
-            { icon: <CalendarDays className="h-4 w-4 text-muted-foreground" />, label: "SOP", value: PROJECT.sop },
-          ]}
-        />
-
-        {/* Gate strip */}
-        <Card className="shrink-0 overflow-hidden border-[#F0DFC4] bg-[#FEFAF3]">
-          <div className="flex divide-x divide-[#F0DFC4]">
-            <div className="flex flex-1 items-center gap-2.5 px-4 py-2.5">
-              <Flag className="h-4 w-4 text-[#B45F09]" />
-              <div className="leading-tight">
-                <p className="text-[11px] text-muted-foreground">Prochaine gate</p>
-                <p className="text-[15px] font-bold text-[#B45F09]">{PROJECT_GATE.next}</p>
-              </div>
-            </div>
-            <div className="flex flex-1 items-center gap-2.5 px-4 py-2.5">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <div className="leading-tight">
-                <p className="text-[11px] text-muted-foreground">Baseline</p>
-                <p className="text-[13px] font-semibold text-foreground">{PROJECT_GATE.baseline}</p>
-              </div>
-            </div>
-            <div className="flex flex-1 items-center gap-2.5 px-4 py-2.5">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <div className="leading-tight">
-                <p className="text-[11px] text-muted-foreground">Forecast</p>
-                <p className="text-[13px] font-semibold text-foreground">{PROJECT_GATE.forecast}</p>
-              </div>
-            </div>
-            <div className="flex flex-1 items-center gap-2.5 px-4 py-2.5">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <div className="leading-tight">
-                <p className="text-[11px] text-muted-foreground">Dérive</p>
-                <p className="text-[13px] font-semibold text-[#D92D20]">{PROJECT_GATE.drift}</p>
-              </div>
-            </div>
-            <div className="flex flex-1 items-center gap-2.5 px-4 py-2.5">
-              <RadialGauge value={PROJECT_GATE.readiness} />
-              <div className="leading-tight">
-                <p className="text-[11px] text-muted-foreground">Readiness G3</p>
-                <p className="text-[15px] font-bold text-foreground">{PROJECT_GATE.readiness} %</p>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* KPIs */}
-        <div className="grid shrink-0 grid-cols-8 gap-2.5">
-          {PROJECT_KPIS.map((kpi) => (
-            <KpiCard
-              key={kpi.label}
-              icon={KPI_ICONS[kpi.icon]}
-              label={kpi.label}
-              value={kpi.value}
-              note={kpi.note}
-              tone={kpi.tone}
-            />
-          ))}
+        {/* Indicateurs consolidés — tous recalculés depuis la liste. */}
+        <div className="grid shrink-0 grid-cols-7 gap-2.5">
+          <KpiCard
+            icon={<FolderClosed className="h-3.5 w-3.5 text-muted-foreground" />}
+            label="Projets actifs"
+            value={PORTFOLIO_TOTALS.count}
+          />
+          <KpiCard
+            icon={<TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />}
+            label="Avancement moyen"
+            value={`${PORTFOLIO_TOTALS.avgActual} %`}
+            note={`vs plan ${PORTFOLIO_TOTALS.avgPlanned} %`}
+          />
+          <KpiCard
+            icon={<Gauge className="h-3.5 w-3.5 text-muted-foreground" />}
+            label="SPI moyen"
+            value={PORTFOLIO_TOTALS.avgSpi.toFixed(3).replace(".", ",")}
+            tone={PORTFOLIO_TOTALS.avgSpi < 1 ? "red" : "green"}
+          />
+          <KpiCard
+            icon={<CalendarClock className="h-3.5 w-3.5 text-[#E58A00]" />}
+            label="Gates en dérive"
+            value={PORTFOLIO_TOTALS.late}
+            note={`sur ${PORTFOLIO_TOTALS.count} projets`}
+            tone="amber"
+          />
+          <KpiCard
+            icon={<Clock className="h-3.5 w-3.5 text-[#D92D20]" />}
+            label="Actions en retard"
+            value={PORTFOLIO_TOTALS.overdue}
+            tone="red"
+          />
+          <KpiCard
+            icon={<AlertTriangle className="h-3.5 w-3.5 text-[#D92D20]" />}
+            label="Actions critiques"
+            value={PORTFOLIO_TOTALS.critical}
+            tone="red"
+          />
+          <KpiCard
+            icon={<ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />}
+            label="Readiness moyenne"
+            value={`${PORTFOLIO_TOTALS.avgReadiness} %`}
+            tone={PORTFOLIO_TOTALS.avgReadiness < 50 ? "red" : "amber"}
+          />
         </div>
 
-        {/* Tabs */}
-        <div className="flex shrink-0 gap-5 border-b border-border">
-          {TABS.map((tab, i) => (
-            <button
-              key={tab}
-              type="button"
-              className={`flex items-center gap-1.5 border-b-2 pb-2 text-[13px] font-medium transition-colors ${
-                i === 0
-                  ? "border-[#E58A00] text-[#B45F09]"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {i === 0 ? <CalendarDays className="h-3.5 w-3.5" /> : null}
-              {i === 1 ? <FolderClosed className="h-3.5 w-3.5" /> : null}
-              {i === 2 ? <LineChart className="h-3.5 w-3.5" /> : null}
-              {i === 3 ? <FileText className="h-3.5 w-3.5" /> : null}
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Band 1 */}
-        <div className="grid min-h-0 flex-1 grid-cols-12 gap-2.5">
-          <Panel
-            title="Planifié vs Réel (courbe en S)"
-            className="col-span-4"
-            action={
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="h-[2px] w-3 rounded bg-[#3976D3]" /> Planifié
-                </span>
-                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="h-[2px] w-3 rounded bg-[#E58A00]" /> Réel
-                </span>
-              </div>
-            }
-          >
-            <div className="h-full min-h-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <ReLineChart data={S_CURVE} margin={{ top: 6, right: 30, bottom: 0, left: -14 }}>
-                  <CartesianGrid stroke="#F2F4F7" vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 9, fill: "#667085" }}
-                    axisLine={{ stroke: "#EAECF0" }}
-                    tickLine={false}
-                    interval={0}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    ticks={[0, 25, 50, 75, 100]}
-                    tickFormatter={(v) => `${v} %`}
-                    tick={{ fontSize: 9, fill: "#667085" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="planned"
-                    stroke="#3976D3"
-                    strokeWidth={1.8}
-                    strokeDasharray="4 3"
-                    dot={{ r: 1.8, fill: "#3976D3", strokeWidth: 0 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="actual"
-                    stroke="#E58A00"
-                    strokeWidth={1.8}
-                    dot={{ r: 1.8, fill: "#E58A00", strokeWidth: 0 }}
-                    connectNulls={false}
-                  />
-                </ReLineChart>
-              </ResponsiveContainer>
-            </div>
-          </Panel>
-
-          <Panel title="Statut des actions" className="col-span-3">
-            <div className="flex h-full items-center">
-              <div className="relative h-full min-h-0 flex-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={ACTION_SPLIT}
-                      dataKey="value"
-                      innerRadius="60%"
-                      outerRadius="88%"
-                      startAngle={90}
-                      endAngle={-270}
-                      paddingAngle={1}
-                      stroke="none"
-                    >
-                      {ACTION_SPLIT.map((s) => (
-                        <Cell key={s.name} fill={s.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[20px] font-bold leading-none text-foreground">43</span>
-                  <span className="text-[10px] text-muted-foreground">actions</span>
-                </div>
-              </div>
-              <ul className="w-[104px] shrink-0 space-y-2">
-                {ACTION_SPLIT.map((s) => (
-                  <li key={s.name} className="flex items-center gap-1.5 text-[11px]">
-                    <Dot color={s.color} />
-                    <span className="text-foreground">{s.name}</span>
-                    <span className="ml-auto whitespace-nowrap text-muted-foreground">
-                      {s.value} ({s.pct} %)
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Panel>
-
-          <Panel title="Alertes projet" className="col-span-3">
-            <ul className="space-y-2.5">
-              {PROJECT_ALERTS.map((a) => (
-                <li key={a.title} className="flex items-start gap-2">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#D92D20]" />
-                  <div className="min-w-0 flex-1 leading-snug">
-                    <p className="text-[12px] font-semibold text-foreground">{a.title}</p>
-                    <p className="text-[11px] text-muted-foreground">{a.detail}</p>
-                  </div>
+        {/* Santé + phases, sur une bande compacte */}
+        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-2.5">
+          <Card className="flex items-center gap-3 px-3.5 py-2">
+            <span className="text-[11px] font-semibold text-foreground">Santé</span>
+            <div className="flex min-w-0 flex-1 overflow-hidden rounded-full">
+              {([
+                ["green", PORTFOLIO_TOTALS.green],
+                ["orange", PORTFOLIO_TOTALS.orange],
+                ["red", PORTFOLIO_TOTALS.red],
+              ] as const).map(([h, n]) =>
+                n > 0 ? (
                   <span
-                    className={`shrink-0 text-[11px] font-medium ${
-                      a.level === "Critique" ? "text-[#D92D20]" : "text-[#E58A00]"
-                    }`}
-                  >
-                    {a.level}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Panel>
+                    key={h}
+                    title={`${HEALTH_META[h].label} : ${n}`}
+                    className="h-2"
+                    style={{
+                      width: `${(n / PORTFOLIO_TOTALS.count) * 100}%`,
+                      backgroundColor: HEALTH_META[h].color,
+                    }}
+                  />
+                ) : null,
+              )}
+            </div>
+            {(["green", "orange", "red"] as const).map((h) => (
+              <span key={h} className="flex shrink-0 items-center gap-1 text-[11px]">
+                <Dot color={HEALTH_META[h].color} />
+                <span className="tabular-nums font-semibold text-foreground">
+                  {PORTFOLIO_TOTALS[h]}
+                </span>
+              </span>
+            ))}
+          </Card>
 
-          <Panel title="Décisions attendues" className="col-span-2">
-            <ol className="space-y-2.5">
-              {PROJECT_DECISIONS.map((d, i) => (
-                <li key={d} className="flex items-start gap-2">
-                  <span className="mt-px flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-border text-[10px] font-bold text-muted-foreground">
-                    {i + 1}
-                  </span>
-                  <p className="text-[11px] leading-snug text-foreground">{d}</p>
-                </li>
-              ))}
-            </ol>
-          </Panel>
+          <Card className="flex items-center gap-3 overflow-x-auto px-3.5 py-2 scrollbar-thin">
+            <span className="shrink-0 text-[11px] font-semibold text-foreground">Phases</span>
+            {PHASE_SPLIT.map((p) => (
+              <span
+                key={p.phase}
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {p.phase}
+                <span className="font-semibold text-foreground">{p.count}</span>
+              </span>
+            ))}
+          </Card>
         </div>
 
-        {/* Band 2 */}
-        <div className="grid min-h-0 flex-1 grid-cols-12 gap-2.5">
-          <Panel title="Parcours des gates APQP" className="col-span-5">
-            <div className="flex h-full flex-col justify-center">
-              <div className="flex items-start">
-                {APQP_GATES.map((g, i) => {
-                  const done = i < 3;
-                  const current = i === 3;
-                  return (
-                    <div key={g.id} className="flex min-w-0 flex-1 flex-col items-center">
-                      <div className="flex w-full items-center">
-                        <span
-                          className={`h-[2px] flex-1 ${i === 0 ? "bg-transparent" : done || current ? "bg-[#2E7D32]" : "bg-border"}`}
-                        />
-                        <span
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold ${
-                            current
-                              ? "border-[#E58A00] bg-white text-[#B45F09]"
-                              : done
-                                ? "border-[#2E7D32] bg-white text-[#2E7D32]"
-                                : "border-border bg-white text-muted-foreground"
+        {/* Recherche & filtres */}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <span className="relative min-w-[240px] flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher par code, nom, client, chef de projet…"
+              className="pl-8"
+            />
+          </span>
+          <Select
+            value={healthFilter}
+            onChange={(e) => setHealthFilter(e.target.value)}
+            aria-label="Filtrer par santé"
+            className="w-[110px] shrink-0"
+          >
+            {["Santé", "Vert", "Orange", "Rouge"].map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </Select>
+          <Select
+            value={phaseFilter}
+            onChange={(e) => setPhaseFilter(e.target.value)}
+            aria-label="Filtrer par phase"
+            className="w-[150px] shrink-0"
+          >
+            {["Phase", ...PHASE_SPLIT.map((p) => p.phase)].map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </Select>
+          <Select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            aria-label="Filtrer par client"
+            className="w-[130px] shrink-0"
+          >
+            {["Client", ...clients].map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </Select>
+          <span className="shrink-0 text-[11px] text-muted-foreground">
+            {rows.length} / {PROJECTS.length} projets
+          </span>
+        </div>
+
+        {/* Tableau complet */}
+        <Card className="min-h-0 flex-1 overflow-hidden">
+          <div className="h-full overflow-auto scrollbar-thin">
+            <table className="w-full min-w-[1180px] text-[11px]">
+              <thead className="sticky top-0 z-10 bg-card">
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  {COLUMNS.map((c) => (
+                    <th
+                      key={c.label || "actions"}
+                      className="whitespace-nowrap px-2.5 py-2 font-medium first:pl-3.5 last:pr-3.5"
+                    >
+                      {c.key ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleSort(c.key!)}
+                          className={`flex items-center gap-1 transition-colors hover:text-foreground ${
+                            sort.key === c.key ? "font-semibold text-[#0E7C52]" : ""
                           }`}
                         >
-                          {g.id}
-                        </span>
-                        <span
-                          className={`h-[2px] flex-1 ${i === APQP_GATES.length - 1 ? "bg-transparent" : done ? "bg-[#2E7D32]" : "bg-border"}`}
-                        />
-                      </div>
-                      <p className="mt-1.5 px-1 text-center text-[9px] leading-tight text-muted-foreground">
-                        {g.label}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mx-auto mt-3 rounded-md bg-[#FDF4E7] px-3 py-1.5 text-[11px] text-foreground">
-                Forecast G3 : <span className="font-semibold">{PROJECT_GATE.forecast}</span>
-                <span className="mx-2 text-border">|</span>
-                Dérive : <span className="font-semibold text-[#D92D20]">{PROJECT_GATE.drift}</span>
-              </div>
-            </div>
-          </Panel>
-
-          <Panel title="Livrables clés" className="col-span-3" bodyClassName="px-0">
-            <table className="w-full text-[11px]">
-              <thead>
-                <tr className="text-left text-muted-foreground">
-                  <th className="px-3.5 pb-1.5 font-medium">&nbsp;</th>
-                  <th className="pb-1.5 font-medium">Statut</th>
-                  <th className="px-3.5 pb-1.5 font-medium">Avancement</th>
+                          {c.label}
+                          {sort.key === c.key ? (
+                            <span aria-hidden>{sort.desc ? "↓" : "↑"}</span>
+                          ) : null}
+                        </button>
+                      ) : (
+                        c.label
+                      )}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {DELIVERABLES.map((d) => (
-                  <tr key={d.name}>
-                    <td className="px-3.5 py-[7px] font-medium text-foreground">{d.name}</td>
-                    <td className="py-[7px]">
-                      <Chip tone={DELIVERABLE_TONE[d.status]}>{d.status}</Chip>
-                    </td>
-                    <td className="px-3.5 py-[7px]">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-8 text-right tabular-nums text-foreground">
-                          {d.progress} %
+                {rows.map((p) => {
+                  const health = HEALTH_META[p.health];
+                  const open = () => router.push(`/projet/${p.id}`);
+                  return (
+                    <tr
+                      key={p.id}
+                      onClick={open}
+                      className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-[#FCFCFD]"
+                    >
+                      <td className="py-2 pl-3.5 pr-2.5">
+                        <span className="flex items-start gap-2">
+                          <Dot color={health.color} className="mt-1" />
+                          <span className="leading-tight">
+                            <span className="block font-semibold text-foreground">{p.id}</span>
+                            <span className="block text-[10px] text-muted-foreground">
+                              {p.name}
+                            </span>
+                          </span>
                         </span>
-                        <ProgressBar
-                          value={d.progress}
-                          color={d.progress === 100 ? "#2E7D32" : "#E58A00"}
-                          className="w-14"
-                        />
-                      </span>
+                      </td>
+                      <td className="px-2.5 py-2 text-muted-foreground">{p.client}</td>
+                      <td className="px-2.5 py-2">
+                        <span className="flex items-center gap-1.5">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E8FBF1] text-[9px] font-bold text-[#0E7C52]">
+                            {p.managerInitials}
+                          </span>
+                          <span className="text-foreground">{p.manager}</span>
+                        </span>
+                      </td>
+                      <td className="px-2.5 py-2 text-[#3976D3]">{p.phase}</td>
+                      <td className="whitespace-nowrap px-2.5 py-2 tabular-nums text-muted-foreground">
+                        {p.sop}
+                      </td>
+                      <td className="whitespace-nowrap px-2.5 py-2 tabular-nums text-muted-foreground">
+                        {formatNumber(p.workload)} h
+                      </td>
+                      <td className="px-2.5 py-2">
+                        <span className="block tabular-nums text-foreground">{p.planned} %</span>
+                        <ProgressBar value={p.planned} color="#3976D3" className="mt-1 w-14" />
+                      </td>
+                      <td className="px-2.5 py-2">
+                        <span className="block tabular-nums text-foreground">{p.actual} %</span>
+                        <ProgressBar value={p.actual} color="#16A46B" className="mt-1 w-14" />
+                      </td>
+                      <td
+                        className={`px-2.5 py-2 font-semibold tabular-nums ${
+                          p.spi < 1 ? "text-[#D92D20]" : "text-[#2E7D32]"
+                        }`}
+                      >
+                        {p.spi.toFixed(3).replace(".", ",")}
+                      </td>
+                      <td
+                        className={`px-2.5 py-2 font-semibold tabular-nums ${
+                          p.overdueActions > 0 ? "text-[#D92D20]" : "text-[#2E7D32]"
+                        }`}
+                      >
+                        {p.overdueActions}
+                      </td>
+                      <td
+                        className={`px-2.5 py-2 font-semibold tabular-nums ${
+                          p.readiness < 50
+                            ? "text-[#D92D20]"
+                            : p.readiness < 80
+                              ? "text-[#E58A00]"
+                              : "text-[#2E7D32]"
+                        }`}
+                      >
+                        {p.readiness} %
+                      </td>
+                      <td
+                        className={`whitespace-nowrap px-2.5 py-2 font-semibold tabular-nums ${
+                          p.driftDays > 0 ? "text-[#D92D20]" : "text-[#2E7D32]"
+                        }`}
+                      >
+                        {p.driftDays > 0 ? `+${p.driftDays} j` : "à l'heure"}
+                      </td>
+                      <td className="px-2.5 py-2">
+                        <Chip tone={health.tone}>
+                          <Dot color={health.color} />
+                          {health.label}
+                        </Chip>
+                      </td>
+                      <td className="whitespace-nowrap px-2.5 py-2 font-medium text-[#0E7C52]">
+                        {p.nextGate}
+                      </td>
+                      <td className="py-2 pl-2.5 pr-3.5">
+                        <Button
+                          className="px-2 py-1 text-[11px]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            open();
+                          }}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Voir
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={COLUMNS.length} className="px-3.5 py-10 text-center text-muted-foreground">
+                      Aucun projet ne correspond aux filtres.
                     </td>
                   </tr>
-                ))}
+                ) : null}
               </tbody>
             </table>
-          </Panel>
-
-          <Panel title="Alertes critiques" className="col-span-2">
-            <ul className="space-y-2">
-              {CRITICAL_ALERTS.map((a) => (
-                <li key={a} className="flex items-start gap-2">
-                  <Dot color="#D92D20" className="mt-1.5" />
-                  <p className="text-[11px] leading-snug text-foreground">{a}</p>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel title="Parcours & redirections" className="col-span-2">
-            <ol className="space-y-2">
-              {[
-                { a: "Ouvrir le planning", t: "ouvre “Planning détaillé — Risques & conflits”." },
-                { a: "Piloter l'exécution", t: "ouvre “Suivi d'exécution & éléments justificatifs”." },
-                { a: "Retour portefeuille", t: "ouvre “Vue globale portefeuille projets”." },
-                { a: "Créer un projet", t: "ouvre “Créer un nouveau projet — Étape 1/3”." },
-              ].map((h, i) => (
-                <li key={h.a} className="flex items-start gap-2">
-                  <span className="mt-px flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border border-[#F0DFC4] bg-[#FDF4E7] text-[9px] font-bold text-[#B45F09]">
-                    {i + 1}
-                  </span>
-                  <p className="text-[10px] leading-snug text-muted-foreground">
-                    Cliquer sur <span className="font-semibold text-foreground">“{h.a}”</span>
-                    <br />
-                    <span className="text-[#B45F09]">→ {h.t}</span>
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </Panel>
-        </div>
-
-        {/* Footer actions */}
-        <div className="grid shrink-0 grid-cols-4 gap-2.5">
-          <Button onClick={() => router.push("/planning")}>
-            <CalendarDays className="h-4 w-4" />
-            Ouvrir le planning
-          </Button>
-          <Button onClick={() => router.push("/execution")}>
-            <LineChart className="h-4 w-4" />
-            Piloter l&apos;exécution
-          </Button>
-          <Button onClick={() => router.push("/portefeuille")}>
-            <FolderClosed className="h-4 w-4" />
-            Retour portefeuille
-          </Button>
-          <Button variant="primary" onClick={() => router.push("/nouveau-projet/etape-1")}>
-            <Plus className="h-4 w-4" />
-            Créer un projet
-          </Button>
-        </div>
+          </div>
+        </Card>
       </div>
     </AppShell>
-  );
-}
-
-/** Small donut used for the gate readiness indicator. */
-function RadialGauge({ value }: { value: number }) {
-  const r = 13;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg viewBox="0 0 32 32" className="h-8 w-8 -rotate-90">
-      <circle cx="16" cy="16" r={r} fill="none" stroke="#F2F4F7" strokeWidth="5" />
-      <circle
-        cx="16"
-        cy="16"
-        r={r}
-        fill="none"
-        stroke="#E58A00"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeDasharray={`${(value / 100) * c} ${c}`}
-      />
-    </svg>
   );
 }

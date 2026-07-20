@@ -10,7 +10,6 @@ import {
   Bell,
   BookOpen,
   CalendarDays,
-  ChevronDown,
   ChevronLeft,
   FolderClosed,
   Home,
@@ -21,7 +20,6 @@ import {
   Settings,
   Briefcase,
   Users,
-  UserRound,
 } from "lucide-react";
 
 import { useScenario } from "@/components/layout/scenario-context";
@@ -67,7 +65,9 @@ const NAV: NavItem[] = [
       },
     ],
   },
-  { label: "Exécution", href: "/execution", icon: LineChart, owns: ["/execution", "/validation"] },
+  // La confirmation de validation n'est plus un écran : elle se joue dans les
+  // modales du parcours de contribution, sans quitter « Exécution ».
+  { label: "Exécution", href: "/execution", icon: LineChart, owns: ["/execution"] },
   { label: "Ressources", icon: Users },
   { label: "Rapports", icon: BarChart3 },
   { label: "Paramètres", icon: Settings },
@@ -106,9 +106,9 @@ function NavLink({
   const content = (
     <>
       {active ? (
-        <span className="absolute -left-2.5 bottom-1.5 top-1.5 w-[3px] rounded-r-full bg-[#E58A00]" />
+        <span className="absolute -left-2.5 bottom-1.5 top-1.5 w-[3px] rounded-r-full bg-[#0E7C52]" />
       ) : null}
-      <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-[#B45F09]")} />
+      <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-[#0E7C52]")} />
       {!collapsed ? item.label : null}
     </>
   );
@@ -132,7 +132,7 @@ function NavLink({
       data-module={item.label}
       className={cn(
         base,
-        active ? "bg-[#FDF4E7] text-[#B45F09]" : "text-[#475467] hover:bg-muted",
+        active ? "bg-[#E8FBF1] text-[#0E7C52]" : "text-[#475467] hover:bg-muted",
       )}
     >
       {content}
@@ -142,11 +142,9 @@ function NavLink({
 
 export function AppShell({
   children,
-  role = "Portfolio Manager",
   notifications = 6,
 }: {
   children: React.ReactNode;
-  role?: string;
   notifications?: number;
 }) {
   const pathname = usePathname();
@@ -157,8 +155,10 @@ export function AppShell({
   /** The portfolio is the entry point: nothing to go back to. */
   const isHome = pathname === "/portefeuille";
 
+  // La hauteur vient du cadre (#app-frame), pas de la fenêtre : sous réduction,
+  // `h-screen` vaudrait plus que la place réellement disponible.
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-white">
+    <div className="flex h-full w-full overflow-hidden bg-white">
       {/* Sidebar */}
       <aside
         className={cn(
@@ -283,15 +283,7 @@ export function AppShell({
             </button>
           ) : null}
 
-          <div className="ml-auto flex items-center gap-2.5 rounded-full px-1">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border">
-              <UserRound className="h-[17px] w-[17px] text-muted-foreground" />
-            </span>
-            <span className="text-[13px] font-semibold text-foreground">{role}</span>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </div>
-
-          <div className="flex items-center gap-2.5">
+          <div className="ml-auto flex items-center gap-2.5">
             <CalendarDays className="h-[18px] w-[18px] text-muted-foreground" />
             <div className="leading-tight">
               <p className="text-[11px] text-muted-foreground">Date de statut</p>
@@ -308,19 +300,19 @@ export function AppShell({
             className={cn(
               "relative transition-colors",
               pathname === "/notifications"
-                ? "text-[#B45F09]"
+                ? "text-[#0E7C52]"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Bell className="h-[19px] w-[19px]" />
             {notifications > 0 ? (
-              <span className="absolute -right-1.5 -top-1.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#E58A00] px-1 text-[9px] font-bold text-white">
+              <span className="absolute -right-1.5 -top-1.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#0E7C52] px-1 text-[9px] font-bold text-white">
                 {notifications}
               </span>
             ) : null}
           </button>
 
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FDF4E7] text-[11px] font-bold text-[#B45F09]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E8FBF1] text-[11px] font-bold text-[#0E7C52]">
             PL
           </span>
         </header>
@@ -336,8 +328,8 @@ export function AppShell({
         title="Scénario de démonstration"
         subtitle="SCENARIO.md — parcours complet de l'application"
         icon={
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FDF4E7]">
-            <BookOpen className="h-5 w-5 text-[#B45F09]" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#E8FBF1]">
+            <BookOpen className="h-5 w-5 text-[#0E7C52]" />
           </span>
         }
       >

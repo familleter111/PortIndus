@@ -28,74 +28,116 @@ export interface Project {
   qualityLoad: number; // %
   health: Health;
   nextGate: string;
+  /** Rang de la prochaine gate dans APQP_GATES (0 = G0). */
+  gateIndex: number;
+  /** Dérive en jours de la prochaine gate — négatif = avance. */
+  driftDays: number;
+  baseline: string;
+  forecast: string;
+  criticalOpen: number;
+  /** Part de livrables approuvés, en %. */
+  approved: number;
 }
 
 export const PROJECTS: Project[] = [
   {
-    id: "P-DEMO-001",
-    name: "Carter aluminium e-Drive",
-    client: "OEM Alpha",
-    manager: "Leïla Mansour",
-    managerInitials: "LM",
-    phase: "Process Design",
-    sop: "05/07/2027",
-    workload: 2248,
-    planned: 48,
-    actual: 42,
-    spi: 0.875,
-    overdueActions: 1,
-    readiness: 58,
-    qualityLoad: 112,
-    health: "orange",
-    nextGate: "G3 Process Freeze",
+    id: "P-DEMO-001", name: "Carter aluminium e-Drive", client: "OEM Alpha",
+    manager: "Leïla Mansour", managerInitials: "LM", phase: "Process Design",
+    sop: "05/07/2027", workload: 2248, planned: 48, actual: 42, spi: 0.875,
+    overdueActions: 1, readiness: 58, qualityLoad: 112, health: "orange",
+    nextGate: "G3 Process Freeze", gateIndex: 3, driftDays: 14,
+    baseline: "05/02/2027", forecast: "19/02/2027", criticalOpen: 3, approved: 33,
   },
   {
-    id: "P-DEMO-002",
-    name: "Armature siège avant",
-    client: "OEM Beta",
-    manager: "Hatem Ben Ali",
-    managerInitials: "HB",
-    phase: "Validation",
-    sop: "31/03/2027",
-    workload: 1680,
-    planned: 66,
-    actual: 69,
-    spi: 1.045,
-    overdueActions: 0,
-    readiness: 82,
-    qualityLoad: 94,
-    health: "green",
-    nextGate: "G4 PPAP Approval",
+    id: "P-DEMO-002", name: "Armature siège avant", client: "OEM Beta",
+    manager: "Hatem Ben Ali", managerInitials: "HB", phase: "Validation",
+    sop: "31/03/2027", workload: 1680, planned: 66, actual: 69, spi: 1.045,
+    overdueActions: 0, readiness: 82, qualityLoad: 94, health: "green",
+    nextGate: "G4 PPAP Approval", gateIndex: 4, driftDays: -3,
+    baseline: "12/01/2027", forecast: "09/01/2027", criticalOpen: 0, approved: 78,
   },
   {
-    id: "P-DEMO-003",
-    name: "Support batterie EV",
-    client: "OEM Gamma",
-    manager: "Sarra Khelifi",
-    managerInitials: "SK",
-    phase: "Product Design",
-    sop: "30/09/2027",
-    workload: 2860,
-    planned: 35,
-    actual: 26,
-    spi: 0.743,
-    overdueActions: 5,
-    readiness: 31,
-    qualityLoad: 121,
-    health: "red",
-    nextGate: "G2 Design Freeze",
+    id: "P-DEMO-003", name: "Support batterie EV", client: "OEM Gamma",
+    manager: "Sarra Khelifi", managerInitials: "SK", phase: "Product Design",
+    sop: "30/09/2027", workload: 2860, planned: 35, actual: 26, spi: 0.743,
+    overdueActions: 5, readiness: 31, qualityLoad: 121, health: "red",
+    nextGate: "G2 Design Freeze", gateIndex: 2, driftDays: 26,
+    baseline: "18/03/2027", forecast: "13/04/2027", criticalOpen: 6, approved: 18,
+  },
+  {
+    id: "P-DEMO-004", name: "Module de refroidissement", client: "OEM Alpha",
+    manager: "Leïla Mansour", managerInitials: "LM", phase: "Planification",
+    sop: "30/09/2027", workload: 1920, planned: 12, actual: 11, spi: 0.917,
+    overdueActions: 0, readiness: 22, qualityLoad: 86, health: "green",
+    nextGate: "G1 Planification produit", gateIndex: 1, driftDays: 0,
+    baseline: "15/01/2027", forecast: "15/01/2027", criticalOpen: 0, approved: 8,
+  },
+  {
+    id: "P-DEMO-005", name: "Boîtier électronique BMS", client: "OEM Delta",
+    manager: "Karim Belhadj", managerInitials: "KB", phase: "Process Design",
+    sop: "14/05/2027", workload: 2410, planned: 54, actual: 47, spi: 0.870,
+    overdueActions: 2, readiness: 61, qualityLoad: 104, health: "orange",
+    nextGate: "G3 Process Freeze", gateIndex: 3, driftDays: 9,
+    baseline: "22/12/2026", forecast: "31/12/2026", criticalOpen: 2, approved: 41,
+  },
+  {
+    id: "P-DEMO-006", name: "Traverse de choc avant", client: "OEM Beta",
+    manager: "Noura Trabelsi", managerInitials: "NT", phase: "Validation",
+    sop: "28/02/2027", workload: 1340, planned: 74, actual: 76, spi: 1.027,
+    overdueActions: 0, readiness: 88, qualityLoad: 91, health: "green",
+    nextGate: "G4 PPAP Approval", gateIndex: 4, driftDays: 0,
+    baseline: "05/12/2026", forecast: "05/12/2026", criticalOpen: 0, approved: 84,
+  },
+  {
+    id: "P-DEMO-007", name: "Carter réducteur fonte", client: "OEM Gamma",
+    manager: "Youssef Jaziri", managerInitials: "YJ", phase: "Product Design",
+    sop: "31/10/2027", workload: 2650, planned: 29, actual: 21, spi: 0.724,
+    overdueActions: 4, readiness: 27, qualityLoad: 118, health: "red",
+    nextGate: "G2 Design Freeze", gateIndex: 2, driftDays: 21,
+    baseline: "26/02/2027", forecast: "19/03/2027", criticalOpen: 5, approved: 15,
+  },
+  {
+    id: "P-DEMO-008", name: "Faisceau haute tension", client: "OEM Delta",
+    manager: "Hassan Kacem", managerInitials: "HK", phase: "Process Design",
+    sop: "20/08/2027", workload: 1780, planned: 45, actual: 43, spi: 0.956,
+    overdueActions: 1, readiness: 54, qualityLoad: 97, health: "orange",
+    nextGate: "G3 Process Freeze", gateIndex: 3, driftDays: 5,
+    baseline: "10/03/2027", forecast: "15/03/2027", criticalOpen: 1, approved: 36,
+  },
+  {
+    id: "P-DEMO-009", name: "Platine de fixation moteur", client: "OEM Alpha",
+    manager: "Sofiane Haddad", managerInitials: "SH", phase: "Lancement",
+    sop: "15/12/2026", workload: 1120, planned: 96, actual: 95, spi: 0.990,
+    overdueActions: 0, readiness: 94, qualityLoad: 78, health: "green",
+    nextGate: "G5 Feedback & amélioration", gateIndex: 5, driftDays: 0,
+    baseline: "15/12/2026", forecast: "15/12/2026", criticalOpen: 0, approved: 97,
+  },
+  {
+    id: "P-DEMO-010", name: "Réservoir fluide caloporteur", client: "OEM Beta",
+    manager: "Leila Mokrani", managerInitials: "LM", phase: "Planification",
+    sop: "31/01/2028", workload: 1460, planned: 8, actual: 6, spi: 0.750,
+    overdueActions: 1, readiness: 14, qualityLoad: 88, health: "orange",
+    nextGate: "G1 Planification produit", gateIndex: 1, driftDays: 7,
+    baseline: "20/02/2027", forecast: "27/02/2027", criticalOpen: 1, approved: 5,
   },
 ];
 
+/** Moyenne pondérée par la charge : un gros projet pèse plus qu'un petit. */
+function weightedAvg(pick: (p: Project) => number): number {
+  const total = PROJECTS.reduce((n, p) => n + p.workload, 0);
+  return PROJECTS.reduce((n, p) => n + pick(p) * p.workload, 0) / total;
+}
+
+const fr1 = (n: number) => n.toFixed(1).replace(".", ",");
+
 export const PORTFOLIO_KPIS = [
-  { label: "Avancement portefeuille réel", value: "41,9 %", tone: "ink" as const, icon: "trend" },
-  { label: "Avancement portefeuille planifié", value: "47,0 %", tone: "ink" as const, icon: "target" },
-  { label: "SPI portefeuille", value: "0,893", tone: "ink" as const, icon: "gauge" },
-  { label: "Projets rouges", value: "1", tone: "red" as const, icon: "flag" },
-  { label: "Actions en retard", value: "6", tone: "red" as const, icon: "clock" },
-  { label: "Readiness moyenne", value: "57 %", tone: "amber" as const, icon: "shield" },
-  { label: "Charge Qualité maximale", value: "121 %", tone: "red" as const, icon: "users" },
-  { label: "Décision prioritaire", value: "Renforcer Qualité", tone: "bronze" as const, icon: "star" },
+  { label: "Avancement portefeuille réel", value: `${fr1(weightedAvg((p) => p.actual))} %`, tone: "ink" as const, icon: "trend" },
+  { label: "Avancement portefeuille planifié", value: `${fr1(weightedAvg((p) => p.planned))} %`, tone: "ink" as const, icon: "target" },
+  { label: "SPI portefeuille", value: weightedAvg((p) => p.spi).toFixed(3).replace(".", ","), tone: "ink" as const, icon: "gauge" },
+  { label: "Projets rouges", value: String(PROJECTS.filter((p) => p.health === "red").length), tone: "red" as const, icon: "flag" },
+  { label: "Actions en retard", value: String(PROJECTS.reduce((n, p) => n + p.overdueActions, 0)), tone: "red" as const, icon: "clock" },
+  { label: "Readiness moyenne", value: `${Math.round(weightedAvg((p) => p.readiness))} %`, tone: "amber" as const, icon: "shield" },
+  { label: "Décision prioritaire", value: "Renforcer Qualité", tone: "action" as const, icon: "star" },
 ];
 
 export interface CapacityRow {
@@ -117,15 +159,79 @@ export const CAPACITY_ROWS: CapacityRow[] = [
 
 export const CAPACITY_TOTAL = { load: 10630, capacity: 11532, ratio: 92 };
 
-export const HEALTH_SPLIT = [
-  { name: "Vert", value: 1, pct: 33, color: "#2E7D32" },
-  { name: "Orange", value: 1, pct: 33, color: "#E58A00" },
-  { name: "Rouge", value: 1, pct: 33, color: "#D92D20" },
-];
+/** Répartition santé, comptée sur PROJECTS : elle suit l'ajout d'un projet. */
+export const HEALTH_SPLIT = (
+  [
+    { name: "Vert", key: "green", color: "#2E7D32" },
+    { name: "Orange", key: "orange", color: "#E58A00" },
+    { name: "Rouge", key: "red", color: "#D92D20" },
+  ] as const
+).map((h) => {
+  const value = PROJECTS.filter((p) => p.health === h.key).length;
+  return {
+    name: h.name,
+    value,
+    pct: Math.round((value / PROJECTS.length) * 100),
+    color: h.color,
+  };
+});
 
-/* ---------------------------- Projet P-DEMO-001 --------------------------- */
+/* ------------------------------ Détail projet ----------------------------- */
 
+/** Projet par défaut — celui que les écrans mono-projet ouvrent sans paramètre. */
 export const PROJECT = PROJECTS[0];
+
+export function projectById(id: string): Project | undefined {
+  return PROJECTS.find((p) => p.id === id);
+}
+
+/** Total portefeuille, recalculé : il ne peut pas diverger de PROJECTS. */
+export const PORTFOLIO_TOTALS = {
+  count: PROJECTS.length,
+  workload: PROJECTS.reduce((n, p) => n + p.workload, 0),
+  overdue: PROJECTS.reduce((n, p) => n + p.overdueActions, 0),
+  critical: PROJECTS.reduce((n, p) => n + p.criticalOpen, 0),
+  red: PROJECTS.filter((p) => p.health === "red").length,
+  orange: PROJECTS.filter((p) => p.health === "orange").length,
+  green: PROJECTS.filter((p) => p.health === "green").length,
+  late: PROJECTS.filter((p) => p.driftDays > 0).length,
+  avgReadiness: Math.round(
+    PROJECTS.reduce((n, p) => n + p.readiness, 0) / PROJECTS.length,
+  ),
+  avgSpi: PROJECTS.reduce((n, p) => n + p.spi, 0) / PROJECTS.length,
+  avgPlanned: Math.round(PROJECTS.reduce((n, p) => n + p.planned, 0) / PROJECTS.length),
+  avgActual: Math.round(PROJECTS.reduce((n, p) => n + p.actual, 0) / PROJECTS.length),
+};
+
+/** Répartition par phase, pour la vue liste. */
+export const PHASE_SPLIT = Array.from(
+  PROJECTS.reduce((m, p) => m.set(p.phase, (m.get(p.phase) ?? 0) + 1), new Map<string, number>()),
+).map(([phase, count]) => ({ phase, count }));
+
+/** Bandeau de gate d'un projet donné. */
+export function gateFor(p: Project) {
+  return {
+    next: p.nextGate,
+    baseline: p.baseline,
+    forecast: p.forecast,
+    drift: p.driftDays === 0 ? "à l'heure" : `${p.driftDays > 0 ? "+" : ""}${p.driftDays} jours`,
+    onTime: p.driftDays <= 0,
+    readiness: p.readiness,
+  };
+}
+
+/** Indicateurs du tableau de bord, dérivés du projet ouvert. */
+export function kpisFor(p: Project) {
+  return [
+    { label: "Avancement réel", value: `${p.actual} %`, note: `vs plan ${p.planned} %`, tone: "ink" as const, icon: "gauge" },
+    { label: "Avancement planifié", value: `${p.planned} %`, tone: "ink" as const, icon: "target" },
+    { label: "SPI simplifié", value: p.spi.toFixed(3).replace(".", ","), note: p.spi < 1 ? "< 1,00" : "≥ 1,00", tone: p.spi < 1 ? ("red" as const) : ("green" as const), icon: "trend" },
+    { label: "Actions en retard", value: String(p.overdueActions), tone: p.overdueActions > 0 ? ("red" as const) : ("green" as const), icon: "clock" },
+    { label: "Livrables approuvés", value: `${p.approved} %`, tone: "green" as const, icon: "check" },
+    { label: "Actions critiques ouvertes", value: String(p.criticalOpen), tone: p.criticalOpen > 0 ? ("red" as const) : ("green" as const), icon: "alert" },
+    { label: "Santé projet", value: { green: "Vert", orange: "Orange", red: "Rouge" }[p.health], tone: { green: "green", orange: "amber", red: "red" }[p.health] as "green" | "amber" | "red", icon: "shield" },
+  ];
+}
 
 export const PROJECT_GATE = {
   next: "G3 — Process Freeze",
@@ -142,7 +248,6 @@ export const PROJECT_KPIS = [
   { label: "Actions en retard", value: "1", tone: "red" as const, icon: "clock" },
   { label: "Livrables approuvés", value: "33 %", tone: "green" as const, icon: "check" },
   { label: "Actions critiques ouvertes", value: "3", tone: "red" as const, icon: "alert" },
-  { label: "Charge Qualité", value: "112 %", note: "vs capacité", tone: "red" as const, icon: "users" },
   { label: "Santé projet", value: "Orange", tone: "amber" as const, icon: "shield" },
 ];
 
@@ -170,35 +275,158 @@ export const ACTION_SPLIT = [
   { name: "En retard", value: 3, pct: 7, color: "#D92D20" },
 ];
 
-export const PROJECT_ALERTS = [
+/**
+ * Le projet n'a que trois sujets ouverts. Ils étaient auparavant éclatés en
+ * trois listes — l'alerte, le risque encouru, la décision attendue — qui
+ * répétaient la même information sous trois formes et pouvaient diverger.
+ * Un sujet = une entrée, qui porte les trois faces.
+ */
+export interface ProjectIssue {
+  id: string;
+  title: string;
+  /** Le constat chiffré. */
+  detail: string;
+  level: "Critique" | "Majeure";
+  /** Ce qui se passe si rien n'est décidé. */
+  risk: string;
+  /** L'arbitrage attendu du comité. */
+  decision: string;
+  /** Échéance de la décision, quand elle en a une. */
+  due?: string;
+}
+
+/**
+ * Sujets ouverts d'un projet donné. Chaque entrée n'apparaît que si le projet
+ * la porte réellement — un projet à l'heure et sans retard n'a rien à arbitrer,
+ * et le panneau le dit plutôt que d'afficher les alertes d'un autre projet.
+ */
+export function issuesFor(p: Project): ProjectIssue[] {
+  const out: ProjectIssue[] = [];
+
+  if (p.driftDays > 0) {
+    out.push({
+      id: "gate",
+      title: `Dérive sur ${p.nextGate}`,
+      detail: `Forecast ${p.forecast} soit +${p.driftDays} jours vs baseline.`,
+      level: p.driftDays >= 14 ? "Critique" : "Majeure",
+      risk: "Impact sur la date PPAP au-delà de +15 jours de dérive.",
+      decision: `Confirmer la date forecast de ${p.nextGate} et son impact PPAP.`,
+    });
+  }
+
+  if (p.qualityLoad > 100) {
+    out.push({
+      id: "capacity",
+      title: "Charge Qualité supérieure à la capacité",
+      detail: `Charge actuelle ${p.qualityLoad} % vs capacité disponible.`,
+      level: "Majeure",
+      risk: "Surcharge persistante sur les quatre prochaines semaines.",
+      decision: "Arbitrer la surcharge de la fonction Qualité.",
+    });
+  }
+
+  if (p.overdueActions > 0) {
+    out.push({
+      id: "overdue",
+      title: `${p.overdueActions} action${p.overdueActions > 1 ? "s" : ""} en retard`,
+      detail: "PFMEA process — action critique dépassée.",
+      level: p.overdueActions >= 4 ? "Critique" : "Majeure",
+      risk: "Plan de rattrapage requis pour tenir la gate.",
+      decision: "Valider le plan de rattrapage PFMEA.",
+      due: "18/12/2026",
+    });
+  }
+
+  return out;
+}
+
+/**
+ * Charge par fonction d'un projet. Les parts sont fixes — c'est la répartition
+ * type d'un projet APQP — mais les heures se calculent sur `workload`, si bien
+ * que le total du tableau égale toujours la charge affichée en fiche projet.
+ */
+const FUNCTION_SHARE: { fn: string; load: number; capacity: number }[] = [
+  { fn: "Qualité", load: 0.276, capacity: 0.224 },
+  { fn: "Méthodes", load: 0.214, capacity: 0.202 },
+  { fn: "Achats", load: 0.138, capacity: 0.162 },
+  { fn: "Production", load: 0.231, capacity: 0.251 },
+  { fn: "Industrialisation", load: 0.141, capacity: 0.161 },
+];
+
+export function capacityFor(p: Project): CapacityRow[] {
+  return FUNCTION_SHARE.map((s) => {
+    const load = Math.round(p.workload * s.load);
+    // La fonction Qualité est calée sur la surcharge connue du projet, les
+    // autres sur leur part de capacité type.
+    const capacity =
+      s.fn === "Qualité"
+        ? Math.round(load / (p.qualityLoad / 100))
+        : Math.round(p.workload * s.capacity);
+    const ratio = Math.round((load / capacity) * 100);
+    return {
+      fn: s.fn,
+      load,
+      capacity,
+      ratio,
+      color: ratio > 100 ? "#D92D20" : ratio >= 95 ? "#E58A00" : "#2E7D32",
+    };
+  });
+}
+
+export function capacityTotalFor(rows: CapacityRow[]) {
+  const load = rows.reduce((n, r) => n + r.load, 0);
+  const capacity = rows.reduce((n, r) => n + r.capacity, 0);
+  return { load, capacity, ratio: Math.round((load / capacity) * 100) };
+}
+
+export const PROJECT_ISSUES: ProjectIssue[] = [
   {
+    id: "gate",
     title: "Dérive sur G3 — Process Freeze",
     detail: "Forecast 19/02/2027 soit +14 jours vs baseline.",
     level: "Critique",
+    risk: "Impact sur la date PPAP au-delà de +15 jours de dérive.",
+    decision: "Confirmer la date forecast du Process Freeze et son impact PPAP.",
   },
   {
+    id: "capacity",
     title: "Charge Qualité supérieure à la capacité",
     detail: "Charge actuelle 112 % vs capacité disponible.",
     level: "Majeure",
+    risk: "Surcharge persistante sur les quatre prochaines semaines.",
+    decision: "Arbitrer la surcharge de la fonction Qualité.",
   },
   {
+    id: "overdue",
     title: "1 action en retard",
-    detail: "Action critique dépassée.",
+    detail: "PFMEA process — action critique dépassée.",
     level: "Majeure",
+    risk: "Plan de rattrapage requis pour tenir la gate.",
+    decision: "Valider le plan de rattrapage PFMEA.",
+    due: "18/12/2026",
   },
 ];
 
-export const PROJECT_DECISIONS = [
-  "Valider le plan de rattrapage PFMEA avant le 18/12/2026.",
-  "Arbitrer la surcharge de la fonction Qualité sur les quatre prochaines semaines.",
-  "Confirmer la date forecast du Process Freeze et son impact PPAP.",
+/**
+ * Répartition de la charge du projet entre les fonctions. La somme des charges
+ * vaut `PROJECT.workload` : le total affiché ne peut pas contredire la fiche
+ * projet ni la ligne du portefeuille.
+ */
+export const PROJECT_CAPACITY: CapacityRow[] = [
+  { fn: "Qualité", load: 620, capacity: 554, ratio: 112, color: "#D92D20" },
+  { fn: "Méthodes", load: 480, capacity: 500, ratio: 96, color: "#E58A00" },
+  { fn: "Achats", load: 310, capacity: 400, ratio: 78, color: "#2E7D32" },
+  { fn: "Production", load: 520, capacity: 620, ratio: 84, color: "#2E7D32" },
+  { fn: "Industrialisation", load: 318, capacity: 400, ratio: 80, color: "#2E7D32" },
 ];
 
-export const CRITICAL_ALERTS = [
-  "PFMEA : plan de rattrapage requis avant le 18/12/2026.",
-  "Surcharge Qualité persistante (112 %).",
-  "Impact potentiel sur la date PPAP si dérive > +15 jours.",
-];
+export const PROJECT_CAPACITY_TOTAL = {
+  load: PROJECT_CAPACITY.reduce((n, r) => n + r.load, 0),
+  capacity: PROJECT_CAPACITY.reduce((n, r) => n + r.capacity, 0),
+  get ratio() {
+    return Math.round((this.load / this.capacity) * 100);
+  },
+};
 
 export const APQP_GATES = [
   { id: "G0", label: "Plan & Définir le programme" },
@@ -218,67 +446,468 @@ export const DELIVERABLES = [
 
 /* ----------------------------- Suivi d'exécution -------------------------- */
 
-export const CONTRIBUTION = {
-  title: "Clore action étanchéité process",
-  reference: "PFMEA process",
-  owner: "Noura Trabelsi",
-  priority: "Critique",
-  progress: 60,
-  state: "En retard",
-  dueDate: "09/12/2026",
-  comment: "Attente de validation finale du plan de sécurisation process",
-  expected: "Risque process réduit et action PFMEA clôturée",
-  evidence: {
-    file: "Plan_securisation_process_v2.pdf",
-    size: "1.8 Mo",
-    type: "Plan d'action",
-    addedAt: "15/12/2026 09:42",
-    addedBy: "Noura Trabelsi",
-    status: "En attente de validation",
-  },
-  contributors: [
-    { name: "Noura Trabelsi", initials: "NT" },
-    { name: "Hichem Ben Amar", initials: "HB" },
-  ],
-  steps: [
-    { n: 1, label: "Vérifier les causes critiques", status: "En cours" },
-    { n: 2, label: "Mettre à jour la cotation de risque", status: "Terminé" },
-    { n: 3, label: "Charger la preuve de revue", status: "En cours" },
-    { n: 4, label: "Soumettre la mise à jour", status: "À faire" },
-  ],
-};
+/**
+ * Une contribution suit toujours le même cycle :
+ *
+ *   Créée ──démarrer──▶ En cours ──soumettre──▶ À valider ──valider──▶ Validée
+ *                          ▲                        │
+ *                          └────────refuser─────────┘
+ *
+ * « En retard » n'est pas une étape du cycle mais une lecture de la date cible :
+ * une contribution en cours dont l'échéance est dépassée s'affiche en retard.
+ * C'est `isOverdue()` qui tranche, jamais une saisie manuelle — sans quoi le
+ * statut et la date pourraient se contredire à l'écran.
+ */
+export type ContribStatus = "Créée" | "En cours" | "À valider" | "Validée";
+export type ContribPriority = "Critique" | "Haute" | "Moyenne" | "Basse";
+export type StepStatus = "À faire" | "En cours" | "Terminée";
+export type EvidenceStatus = "En attente de validation" | "Validée" | "Refusée";
 
-export const MY_CONTRIBUTIONS = [
-  { label: "À traiter", value: 5, tone: "ink" as const, icon: "clipboard" },
-  { label: "En retard", value: 3, tone: "red" as const, icon: "clock" },
-  { label: "Critiques", value: 2, tone: "red" as const, icon: "alert" },
-  { label: "Avec preuve manquante", value: 4, tone: "amber" as const, icon: "file" },
+export interface ContribStep {
+  n: number;
+  label: string;
+  status: StepStatus;
+}
+
+export interface ContribEvidence {
+  id: string;
+  file: string;
+  size: string;
+  type: string;
+  addedAt: string;
+  addedBy: string;
+  status: EvidenceStatus;
+  validatedBy?: string;
+  validatedAt?: string;
+  comment?: string;
+}
+
+/** Nature d'une entrée d'historique — pilote l'icône et sa couleur. */
+export type UpdateKind =
+  | "create"
+  | "start"
+  | "progress"
+  | "evidence"
+  | "submit"
+  | "validate"
+  | "refuse";
+
+export interface ContribUpdate {
+  id: string;
+  kind: UpdateKind;
+  author: string;
+  initials: string;
+  at: string;
+  lines: string[];
+}
+
+export interface Contribution {
+  id: string;
+  title: string;
+  reference: string;
+  owner: string;
+  ownerInitials: string;
+  priority: ContribPriority;
+  status: ContribStatus;
+  progress: number;
+  /** Date cible, au format jj/mm/aaaa. */
+  dueDate: string;
+  lastUpdate: string;
+  expected: string;
+  comment: string;
+  contributors: { name: string; initials: string }[];
+  steps: ContribStep[];
+  evidence: ContribEvidence[];
+  history: ContribUpdate[];
+}
+
+/** Libellés d'étapes par défaut : le parcours de réalisation est le même partout. */
+const DEFAULT_STEPS: ContribStep[] = [
+  { n: 1, label: "Vérifier les causes critiques", status: "À faire" },
+  { n: 2, label: "Mettre à jour la cotation de risque", status: "À faire" },
+  { n: 3, label: "Charger la preuve de revue", status: "À faire" },
+  { n: 4, label: "Soumettre la mise à jour", status: "À faire" },
 ];
 
-export const UPDATE_HISTORY = [
+/**
+ * Étapes cohérentes avec un taux d'avancement : chaque étape vaut un quart.
+ * Évite d'écrire à la main des jeux d'étapes qui contrediraient la barre de
+ * progression affichée juste à côté.
+ */
+function stepsFor(progress: number): ContribStep[] {
+  const done = Math.floor(progress / 25);
+  return DEFAULT_STEPS.map((s, i) => ({
+    ...s,
+    status: i < done ? "Terminée" : i === done && progress % 25 !== 0 ? "En cours" : "À faire",
+  }));
+}
+
+export const CONTRIBUTIONS: Contribution[] = [
   {
-    author: "Noura Trabelsi",
-    initials: "NT",
-    date: "15/12/2026",
-    time: "09:42",
-    lines: [
-      "Taux d'achèvement mis à jour : 40 % → 60 %",
-      "Preuve associée ajoutée : Plan_securisation_process_v2.pdf",
+    id: "CTR-0001",
+    title: "Clore action étanchéité process",
+    reference: "PFMEA process",
+    owner: "Noura Trabelsi",
+    ownerInitials: "NT",
+    priority: "Critique",
+    status: "Créée",
+    progress: 0,
+    dueDate: "09/01/2027",
+    lastUpdate: "15/12/2026 14:32",
+    expected: "Risque process réduit et action PFMEA clôturée",
+    comment: "",
+    contributors: [
+      { name: "Noura Trabelsi", initials: "NT" },
+      { name: "Hichem Ben Amar", initials: "HB" },
+    ],
+    steps: stepsFor(0),
+    evidence: [],
+    history: [
+      {
+        id: "u0",
+        kind: "create",
+        author: "Système",
+        initials: "SY",
+        at: "15/12/2026 14:32",
+        lines: ["Contribution créée"],
+      },
     ],
   },
   {
-    author: "Noura Trabelsi",
-    initials: "NT",
-    date: "12/12/2026",
-    time: "16:35",
-    lines: ["Commentaire d'exécution mis à jour", "Étape 2 marquée comme terminée"],
+    id: "CTR-0002",
+    title: "Valider capacité machine MOP",
+    reference: "Plan de contrôle",
+    owner: "Rachid Ben Amar",
+    ownerInitials: "RB",
+    priority: "Haute",
+    status: "En cours",
+    progress: 35,
+    dueDate: "18/01/2027",
+    lastUpdate: "15/12/2026 10:15",
+    expected: "Capacité machine confirmée sur les trois postes",
+    comment: "Relevés en cours sur la ligne 04.",
+    contributors: [{ name: "Rachid Ben Amar", initials: "RB" }],
+    steps: stepsFor(35),
+    evidence: [
+      {
+        id: "e1",
+        file: "Releves_capacite_MOP.pdf",
+        size: "0.9 Mo",
+        type: "Rapport",
+        addedAt: "13/12/2026 09:12",
+        addedBy: "Rachid Ben Amar",
+        status: "En attente de validation",
+      },
+      {
+        id: "e2",
+        file: "Fiche_machine_MOP.pdf",
+        size: "0.4 Mo",
+        type: "Fiche",
+        addedAt: "15/12/2026 10:15",
+        addedBy: "Rachid Ben Amar",
+        status: "En attente de validation",
+      },
+    ],
+    history: [
+      {
+        id: "u1",
+        kind: "progress",
+        author: "Rachid Ben Amar",
+        initials: "RB",
+        at: "15/12/2026 10:15",
+        lines: ["Avancement mis à jour à 35 %"],
+      },
+    ],
   },
   {
-    author: "Hichem Ben Amar",
-    initials: "HB",
-    date: "10/12/2026",
-    time: "11:18",
-    lines: ["Étape 1 marquée comme en cours", "Priorité mise à jour : Majeure → Critique"],
+    id: "CTR-0003",
+    title: "Mettre à jour AMDEC procédé",
+    reference: "PFMEA process",
+    owner: "Sofiane Haddad",
+    ownerInitials: "SH",
+    priority: "Critique",
+    status: "À valider",
+    progress: 80,
+    dueDate: "05/01/2027",
+    lastUpdate: "14/12/2026 16:42",
+    expected: "Cotation de risque révisée et validée",
+    comment: "En attente de la revue qualité.",
+    contributors: [{ name: "Sofiane Haddad", initials: "SH" }],
+    steps: stepsFor(80),
+    evidence: [
+      {
+        id: "e3",
+        file: "AMDEC_procede_v4.pdf",
+        size: "2.1 Mo",
+        type: "Analyse de risque",
+        addedAt: "14/12/2026 16:42",
+        addedBy: "Sofiane Haddad",
+        status: "En attente de validation",
+      },
+    ],
+    history: [
+      {
+        id: "u2",
+        kind: "submit",
+        author: "Sofiane Haddad",
+        initials: "SH",
+        at: "14/12/2026 16:42",
+        lines: ["Contribution soumise pour validation"],
+      },
+    ],
+  },
+  {
+    id: "CTR-0004",
+    title: "Réaliser étude capabilité initiale",
+    reference: "Plan de contrôle",
+    owner: "Leila Mokrani",
+    ownerInitials: "LM",
+    priority: "Haute",
+    status: "Validée",
+    progress: 100,
+    dueDate: "12/12/2026",
+    lastUpdate: "13/12/2026 09:30",
+    expected: "Cpk conforme sur les caractéristiques critiques",
+    comment: "Étude conforme, clôturée.",
+    contributors: [{ name: "Leila Mokrani", initials: "LM" }],
+    steps: stepsFor(100),
+    evidence: [
+      {
+        id: "e4",
+        file: "Etude_capabilite_initiale.pdf",
+        size: "1.4 Mo",
+        type: "Rapport",
+        addedAt: "11/12/2026 11:20",
+        addedBy: "Leila Mokrani",
+        status: "Validée",
+        validatedBy: "Responsable Qualité",
+        validatedAt: "13/12/2026 09:30",
+        comment: "Conforme aux exigences client.",
+      },
+    ],
+    history: [
+      {
+        id: "u3",
+        kind: "validate",
+        author: "Responsable Qualité",
+        initials: "RQ",
+        at: "13/12/2026 09:30",
+        lines: ["Contribution validée"],
+      },
+    ],
+  },
+  {
+    id: "CTR-0005",
+    title: "Qualifier fournisseur joint torique",
+    reference: "Plan de maîtrise",
+    owner: "Hassan Kacem",
+    ownerInitials: "HK",
+    priority: "Moyenne",
+    status: "En cours",
+    progress: 60,
+    dueDate: "20/01/2027",
+    lastUpdate: "13/12/2026 11:05",
+    expected: "Fournisseur qualifié et référencé",
+    comment: "Audit fournisseur planifié.",
+    contributors: [{ name: "Hassan Kacem", initials: "HK" }],
+    steps: stepsFor(60),
+    evidence: [
+      {
+        id: "e5",
+        file: "Audit_fournisseur.pdf",
+        size: "1.1 Mo",
+        type: "Audit",
+        addedAt: "13/12/2026 11:05",
+        addedBy: "Hassan Kacem",
+        status: "En attente de validation",
+      },
+    ],
+    history: [
+      {
+        id: "u4",
+        kind: "progress",
+        author: "Hassan Kacem",
+        initials: "HK",
+        at: "13/12/2026 11:05",
+        lines: ["Avancement mis à jour à 60 %"],
+      },
+    ],
+  },
+  {
+    id: "CTR-0006",
+    title: "Corriger défaut porosité carter",
+    reference: "8D-2025-014",
+    owner: "Rachid Ben Amar",
+    ownerInitials: "RB",
+    priority: "Critique",
+    status: "En cours",
+    progress: 45,
+    // Échéance dépassée : la contribution ressort « En retard » à l'affichage.
+    dueDate: "05/12/2026",
+    lastUpdate: "12/12/2026 17:22",
+    expected: "Taux de porosité ramené sous le seuil client",
+    comment: "Essais de dégazage en cours.",
+    contributors: [{ name: "Rachid Ben Amar", initials: "RB" }],
+    steps: stepsFor(45),
+    evidence: [
+      {
+        id: "e6",
+        file: "Rapport_8D_porosite.pdf",
+        size: "1.7 Mo",
+        type: "Rapport 8D",
+        addedAt: "12/12/2026 17:22",
+        addedBy: "Rachid Ben Amar",
+        status: "En attente de validation",
+      },
+    ],
+    history: [
+      {
+        id: "u5",
+        kind: "progress",
+        author: "Rachid Ben Amar",
+        initials: "RB",
+        at: "12/12/2026 17:22",
+        lines: ["Avancement mis à jour à 45 %"],
+      },
+    ],
+  },
+  {
+    id: "CTR-0007",
+    title: "Archiver rapport essai corrosion",
+    reference: "Rapport essais",
+    owner: "Leila Mokrani",
+    ownerInitials: "LM",
+    priority: "Basse",
+    status: "Validée",
+    progress: 100,
+    dueDate: "01/12/2026",
+    lastUpdate: "11/12/2026 13:20",
+    expected: "Rapport archivé et référencé",
+    comment: "Archivage confirmé.",
+    contributors: [{ name: "Leila Mokrani", initials: "LM" }],
+    steps: stepsFor(100),
+    evidence: [
+      {
+        id: "e7",
+        file: "Essai_corrosion_2026.pdf",
+        size: "0.8 Mo",
+        type: "Rapport",
+        addedAt: "10/12/2026 08:40",
+        addedBy: "Leila Mokrani",
+        status: "Validée",
+        validatedBy: "Responsable Qualité",
+        validatedAt: "11/12/2026 13:20",
+      },
+    ],
+    history: [
+      {
+        id: "u6",
+        kind: "validate",
+        author: "Responsable Qualité",
+        initials: "RQ",
+        at: "11/12/2026 13:20",
+        lines: ["Contribution validée"],
+      },
+    ],
+  },
+  {
+    id: "CTR-0008",
+    title: "Déployer standard travail opérateur",
+    reference: "Instruction de travail",
+    owner: "Yassine Gharbi",
+    ownerInitials: "YG",
+    priority: "Moyenne",
+    status: "En cours",
+    progress: 20,
+    dueDate: "30/01/2027",
+    lastUpdate: "11/12/2026 09:10",
+    expected: "Standard déployé sur les trois équipes",
+    comment: "Formation des équipes en préparation.",
+    contributors: [{ name: "Yassine Gharbi", initials: "YG" }],
+    steps: stepsFor(20),
+    evidence: [],
+    history: [
+      {
+        id: "u7",
+        kind: "start",
+        author: "Yassine Gharbi",
+        initials: "YG",
+        at: "11/12/2026 09:10",
+        lines: ["Contribution démarrée"],
+      },
+    ],
+  },
+];
+
+/** "09/01/2027" → 20270109, comparable numériquement. */
+function dateKey(fr: string): number {
+  const [d, m, y] = fr.split("/");
+  return Number(`${y}${m}${d}`);
+}
+
+/** Le retard est un statut d'affichage : il se déduit, il ne se saisit pas. */
+export type DisplayStatus = ContribStatus | "En retard";
+
+/**
+ * Une contribution est en retard si sa date cible est passée alors qu'elle est
+ * encore à la main de son responsable. Une fois soumise, la balle est dans le
+ * camp du valideur : on garde « À valider », qui est l'information utile.
+ */
+export function displayStatus(c: Contribution): DisplayStatus {
+  const pending = c.status === "Créée" || c.status === "En cours";
+  return pending && dateKey(c.dueDate) < dateKey(STATUS_DATE) ? "En retard" : c.status;
+}
+
+/** Soumission autorisée seulement à 100 % et toutes les étapes terminées. */
+export function canSubmit(c: Contribution): boolean {
+  return c.progress >= 100 && c.steps.every((s) => s.status === "Terminée");
+}
+
+/** Contexte de la porte APQP courante, affiché en bandeau. */
+export const EXECUTION_GATE = {
+  projectId: "DF-MOV-001",
+  projectName: "Carter aluminium e-Drive",
+  gateNumber: "02",
+  gateName: "Concevoir Process",
+  objective: "Sécuriser la conception et fiabiliser les processus de prototypage",
+};
+
+/**
+ * Le périmètre du projet dépasse les contributions listées ici : la répartition
+ * porte sur les 31 contributions du projet, dont ce tableau montre un extrait.
+ */
+export const CONTRIB_SPLIT = [
+  { label: "Créées", value: 5, color: "#98A2B3" },
+  { label: "En cours", value: 7, color: "#3976D3" },
+  { label: "À valider", value: 4, color: "#E58A00" },
+  { label: "Validées", value: 12, color: "#2E7D32" },
+  { label: "En retard", value: 3, color: "#D92D20" },
+];
+
+export const RECENT_ACTIVITY = [
+  {
+    id: "a1",
+    kind: "progress" as UpdateKind,
+    who: "Rachid Ben Amar",
+    what: "a mis à jour la contribution",
+    target: "Valider capacité machine MOP",
+    when: "Il y a 1 heure",
+  },
+  {
+    id: "a2",
+    kind: "validate" as UpdateKind,
+    who: "Leila Mokrani",
+    what: "a validé la contribution",
+    target: "Réaliser étude capabilité initiale",
+    when: "Il y a 3 heures",
+  },
+  {
+    id: "a3",
+    kind: "submit" as UpdateKind,
+    who: "Sofiane Haddad",
+    what: "a soumis une contribution en validation",
+    target: "Mettre à jour AMDEC procédé",
+    when: "Hier à 16:42",
   },
 ];
 
@@ -293,8 +922,55 @@ export const NEW_PROJECT = {
   managerInitials: "LM",
   template: "APQP Light — Nouveau produit",
   category: "Nouveau produit",
-  description:
-    "Lancement d'un nouveau module de refroidissement destiné aux véhicules électriques. Le projet couvre la conception, le développement et l'industrialisation d'un module de refroidissement intégrant une plaque froide, des canaux de fluide et des interfaces mécaniques. L'objectif est d'assurer des performances thermiques élevées, une intégration compacte et une fiabilité conforme aux exigences OEM.",
+  /**
+   * Description générée à partir du template APQP, de la catégorie et du client
+   * sélectionnés plus haut. Structurée en sections plutôt qu'en bloc de texte :
+   * chaque section correspond à ce que l'étape suivante du wizard demandera.
+   */
+  aiDescription: {
+    /** Ce qui a servi à produire la description, affiché pour la traçabilité. */
+    basedOn: ["Template APQP Light", "Catégorie Nouveau produit", "Client OEM Alpha"],
+    summary:
+      "Conception, développement et industrialisation d'un module de refroidissement pour véhicules électriques, intégrant une plaque froide, des canaux de fluide et des interfaces mécaniques.",
+    sections: [
+      {
+        title: "Périmètre technique",
+        icon: "package" as const,
+        lines: [
+          "Plaque froide brasée aluminium, canaux de fluide et interfaces mécaniques.",
+          "Étanchéité circuit glycol et tenue en pression jusqu'à 3 bar.",
+          "Intégration compacte sous contrainte d'encombrement batterie.",
+        ],
+      },
+      {
+        title: "Exigences client",
+        icon: "target" as const,
+        lines: [
+          "Performance thermique : dissipation nominale conforme au cahier des charges OEM.",
+          "PPAP niveau 3 attendu à la gate G4.",
+          "Traçabilité pièce à pièce sur les caractéristiques critiques.",
+        ],
+      },
+      {
+        title: "Risques anticipés",
+        icon: "alert" as const,
+        lines: [
+          "Étanchéité du circuit — historique de porosité sur pièces brasées comparables.",
+          "Capacité Qualité déjà tendue sur le portefeuille (121 %).",
+          "Délai d'approvisionnement outillage sur le chemin critique G3.",
+        ],
+      },
+      {
+        title: "Jalons structurants",
+        icon: "calendar" as const,
+        lines: [
+          "G2 Design Freeze — gel de la définition produit.",
+          "G3 Process Freeze — gel du process et lancement outillage.",
+          "G4 PPAP Approval — validation client avant SOP.",
+        ],
+      },
+    ],
+  },
   objectives: [
     "Sécuriser les gates APQP et les livrables associés",
     "Assurer la qualité produit et la robustesse des processus",
@@ -324,7 +1000,7 @@ export interface TeamMember {
 
 /** Équipe pluridisciplinaire permanente, présente à toutes les gates. */
 export const CORE_TEAM: TeamMember[] = [
-  { name: "Leïla Mansour", initials: "LM", fn: "Direction projet", role: "Pilotage APQP", allocation: 60, site: "Sousse", color: "#B45F09" },
+  { name: "Leïla Mansour", initials: "LM", fn: "Direction projet", role: "Pilotage APQP", allocation: 60, site: "Sousse", color: "#0E7C52" },
   { name: "Noura Trabelsi", initials: "NT", fn: "Qualité", role: "PFMEA & plan de contrôle", allocation: 45, site: "Sousse", color: "#D92D20" },
   { name: "Youssef Jaziri", initials: "YJ", fn: "Méthodes / Process", role: "Flux process & outillage", allocation: 50, site: "Sousse", color: "#3976D3" },
   { name: "Karim Belhadj", initials: "KB", fn: "Industrialisation", role: "Essais & capabilité", allocation: 35, site: "Sousse", color: "#2E7D32" },
@@ -640,7 +1316,7 @@ export const SERVICE_LOAD: LoadService[] = [
     service: "Programme", pilots: 7,
     values: [42, 29, 31, 35, 55, 30, 32, 12, 34, n, 23, 26, 16, 7, n, 3, 9, 14, 1],
     members: [
-      { name: "Leïla Mansour", initials: "LM", color: "#B45F09", projects: 9,
+      { name: "Leïla Mansour", initials: "LM", color: "#0E7C52", projects: 9,
         clients: ["OEM Alpha", "OEM Gamma"], health: "orange",
         phases: ["Product Design", "Process Design"],
         values: [58, 31, 44, 40, 72, 33, 41, 12, 47, n, 30, 35, 22, 9, n, 4, 12, 19, 1] },
@@ -803,51 +1479,6 @@ export const SIMULATION = {
     "Le scénario améliore le rapport charge/capacité de la fonction Qualité.",
   ],
   ticks: ["08/01", "11/01", "14/01", "17/01", "20/01", "23/01", "26/01", "29/01"],
-};
-
-/* ------------------------------ Analyse preuve ---------------------------- */
-
-export const EVIDENCE_REVIEW = {
-  confidence: "87 %",
-  recommendation: "Conforme sous réserve",
-  gap: "commentaire de revue qualité manquant",
-  consistency: "Bonne",
-  comment:
-    "Le document est globalement conforme. Ajouter une note de revue qualité pour finaliser la validation.",
-  criteria: [
-    { label: "Le document correspond à la contribution", verdict: "Conforme", ok: true },
-    { label: "Le contenu est lisible et complet", verdict: "Conforme", ok: true },
-    { label: "La preuve couvre bien l'action déclarée", verdict: "Partiellement conforme", ok: false },
-    { label: "La version est cohérente avec l'avancement", verdict: "Conforme", ok: true },
-  ],
-  preview: [
-    { action: "Vérifier les causes critiques", owner: "Qualité Process", due: "15/12/2026", status: "Terminé" },
-    { action: "Mettre à jour la cartographie des risques", owner: "Qualité Process", due: "20/12/2026", status: "En cours" },
-    { action: "Changer la gamme de mesure", owner: "Méthodes", due: "28/12/2026", status: "En cours" },
-    { action: "Soumettre la mise à jour", owner: "Qualité", due: "05/01/2027", status: "À faire" },
-  ],
-};
-
-/* ------------------------------- Confirmation ----------------------------- */
-
-export const VALIDATION = {
-  contribution: "Clore action étanchéité process",
-  reference: "PFMEA process",
-  validatedBy: "Responsable Qualité",
-  date: "15/12/2026 — 10:14",
-  file: "Plan_securisation_process_v2.pdf",
-  progressBefore: "41 %",
-  progressAfter: "43 %",
-  progressDelta: "+2 pts",
-  readinessBefore: "58 %",
-  readinessAfter: "62 %",
-  readinessDelta: "+4 pts",
-  effects: [
-    "La preuve est désormais conforme",
-    "La contribution peut être clôturée après revue finale",
-    "Le dashboard projet est mis à jour",
-    "Le suivi d'exécution conserve la traçabilité",
-  ],
 };
 
 /* ------------------------------ Notifications ----------------------------- */

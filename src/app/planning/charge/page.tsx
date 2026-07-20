@@ -57,7 +57,7 @@ function cellStyle(v: number | null): React.CSSProperties {
       fontWeight: 600,
     };
   }
-  if (v >= 96) return { backgroundColor: "#FEF6E7", color: "#B45F09", fontWeight: 600 };
+  if (v >= 96) return { backgroundColor: "#FEF6E7", color: "#0E7C52", fontWeight: 600 };
   const t = Math.min(1, v / 95);
   return { backgroundColor: `rgba(46, 125, 50, ${0.05 + t * 0.16})`, color: "#1B5E20" };
 }
@@ -200,7 +200,7 @@ export default function ChargeParServicePage() {
                   type="button"
                   className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
                     s === "Mois"
-                      ? "bg-[#B45F09] text-white"
+                      ? "bg-[#5EDE99] text-[#101828]"
                       : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
@@ -229,7 +229,7 @@ export default function ChargeParServicePage() {
                 onClick={tab === "Projets" ? () => router.push("/planning") : undefined}
                 className={`border-b-2 pb-1.5 text-[13px] font-medium transition-colors ${
                   active
-                    ? "border-[#E58A00] text-[#B45F09]"
+                    ? "border-[#16A46B] text-[#0E7C52]"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -242,7 +242,7 @@ export default function ChargeParServicePage() {
         {/* --------------------------------------------------------- Filtres */}
         <Card
           className={`mt-2 flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 transition-colors ${
-            activeCount ? "border-[#F0DFC4] bg-[#FFFDF9]" : ""
+            activeCount ? "border-[#BFEFD5] bg-[#FFFDF9]" : ""
           }`}
         >
           <span className="relative flex h-8 min-w-[190px] max-w-[280px] flex-1 items-center">
@@ -251,14 +251,14 @@ export default function ChargeParServicePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher un service, un pilote…"
-              className="h-8 w-full rounded-lg border border-input bg-white pl-8 pr-7 text-[12px] text-foreground transition-shadow placeholder:text-muted-foreground focus:border-[#E5A11B] focus:outline-none focus:ring-2 focus:ring-[#E5A11B]/20"
+              className="h-8 w-full rounded-lg border border-input bg-white pl-8 pr-7 text-[12px] text-foreground transition-shadow placeholder:text-muted-foreground focus:border-[#16A46B] focus:outline-none focus:ring-2 focus:ring-[#16A46B]/20"
             />
             {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Effacer la recherche"
-                className="absolute right-2 text-muted-foreground transition-colors hover:text-[#B45F09]"
+                className="absolute right-2 text-muted-foreground transition-colors hover:text-[#0E7C52]"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -324,11 +324,11 @@ export default function ChargeParServicePage() {
             <button
               type="button"
               onClick={reset}
-              className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-[#FEF6E7] hover:text-[#B45F09]"
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-[#FEF6E7] hover:text-[#0E7C52]"
             >
               <X className="h-3.5 w-3.5" />
               Effacer
-              <span className="rounded-full bg-[#FEF6E7] px-1.5 text-[10px] font-bold text-[#B45F09]">
+              <span className="rounded-full bg-[#FEF6E7] px-1.5 text-[10px] font-bold text-[#0E7C52]">
                 {activeCount}
               </span>
             </button>
@@ -516,7 +516,7 @@ export default function ChargeParServicePage() {
                       <button
                         type="button"
                         onClick={reset}
-                        className="mt-2.5 rounded-lg border border-[#EFE2CE] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#B45F09] shadow-sm transition-colors hover:bg-[#FDF7EF]"
+                        className="mt-2.5 rounded-lg border border-[#BFEFD5] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#0E7C52] shadow-sm transition-colors hover:bg-[#F1FCF6]"
                       >
                         Effacer les filtres
                       </button>

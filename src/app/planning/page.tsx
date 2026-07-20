@@ -395,10 +395,6 @@ export default function PlanningPage() {
               Pilotage opérationnel du planning APQP
             </p>
           </div>
-          <Button className="ml-auto shrink-0 py-1.5">
-            <UserRound className="h-4 w-4" />
-            Chef de projet
-          </Button>
         </div>
 
         {/* ------------------------------------------------- Bandeau projet */}
@@ -407,7 +403,7 @@ export default function PlanningPage() {
             { icon: <FileText className="h-4 w-4 text-muted-foreground" />, k: "Projet", v: `${PROJECT.id} — ${PROJECT.name}`, tone: "text-foreground" },
             { icon: <Layers className="h-4 w-4 text-muted-foreground" />, k: "Phase actuelle", v: PROJECT.phase, tone: "text-[#3976D3]" },
             { icon: <CalendarRange className="h-4 w-4 text-muted-foreground" />, k: "Date de statut", v: STATUS_DATE, tone: "text-foreground" },
-            { icon: <Flag className="h-4 w-4 text-[#E58A00]" />, k: "Prochaine gate", v: "G3 — Process Freeze", tone: "text-[#B45F09]" },
+            { icon: <Flag className="h-4 w-4 text-[#0E7C52]" />, k: "Prochaine gate", v: "G3 — Process Freeze", tone: "text-[#0E7C52]" },
             { icon: <AlertTriangle className="h-4 w-4 text-[#E58A00]" />, k: "Délai", v: "+14 jours", tone: "text-[#E58A00]" },
           ].map((i) => (
             <Card key={i.k} className="flex items-center gap-2 px-2.5 py-1.5">
@@ -433,7 +429,7 @@ export default function PlanningPage() {
               }
               className={`border-b-2 pb-1.5 text-[13px] font-medium transition-colors ${
                 i === 0
-                  ? "border-[#E58A00] text-[#B45F09]"
+                  ? "border-[#16A46B] text-[#0E7C52]"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -465,7 +461,7 @@ export default function PlanningPage() {
                   }}
                   className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
                     scale === s.key
-                      ? "bg-[#B45F09] text-white"
+                      ? "bg-[#5EDE99] text-[#101828]"
                       : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
@@ -481,7 +477,7 @@ export default function PlanningPage() {
                 disabled={zoom <= 0.5}
                 aria-label="Dézoomer le Gantt"
                 title="Dézoomer"
-                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-[#B45F09] disabled:pointer-events-none disabled:opacity-40"
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-[#0E7C52] disabled:pointer-events-none disabled:opacity-40"
               >
                 <ZoomOut className="h-3.5 w-3.5" />
               </button>
@@ -489,7 +485,7 @@ export default function PlanningPage() {
                 type="button"
                 onClick={() => setZoom(1)}
                 title="Réinitialiser le zoom"
-                className="w-9 rounded-md px-1 py-1 text-[11px] font-medium tabular-nums text-muted-foreground transition-colors hover:bg-muted hover:text-[#B45F09]"
+                className="w-9 rounded-md px-1 py-1 text-[11px] font-medium tabular-nums text-muted-foreground transition-colors hover:bg-muted hover:text-[#0E7C52]"
               >
                 {Math.round(zoom * 100)}%
               </button>
@@ -499,7 +495,7 @@ export default function PlanningPage() {
                 disabled={zoom >= 4}
                 aria-label="Zoomer le Gantt"
                 title="Zoomer"
-                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-[#B45F09] disabled:pointer-events-none disabled:opacity-40"
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-[#0E7C52] disabled:pointer-events-none disabled:opacity-40"
               >
                 <ZoomIn className="h-3.5 w-3.5" />
               </button>
@@ -540,8 +536,8 @@ export default function PlanningPage() {
 
           {/* Actions sur l'élément sélectionné : ajouter / modifier / supprimer */}
           {selectedRow ? (
-            <div className="ml-auto flex items-center gap-0.5 rounded-lg border border-[#EFE2CE] bg-white p-0.5 shadow-sm">
-              <span className="px-1.5 text-[11px] font-semibold text-[#B45F09]">
+            <div className="ml-auto flex items-center gap-0.5 rounded-lg border border-[#BFEFD5] bg-white p-0.5 shadow-sm">
+              <span className="px-1.5 text-[11px] font-semibold text-[#0E7C52]">
                 {selectedRow.id}
               </span>
               <span className="h-5 w-px bg-border" />
@@ -669,9 +665,9 @@ export default function PlanningPage() {
                   key={a.label}
                   type="button"
                   onClick={a.run}
-                  className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border px-1 text-center transition-colors hover:border-[#E5A11B] hover:bg-[#FDF7EF]"
+                  className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border px-1 text-center transition-colors hover:border-[#16A46B] hover:bg-[#F1FCF6]"
                 >
-                  <span className="text-[#E58A00]">{a.icon}</span>
+                  <span className="text-[#0E7C52]">{a.icon}</span>
                   <span className="text-[10px] leading-tight text-foreground">{a.label}</span>
                 </button>
               ))}
@@ -744,7 +740,7 @@ function Toggle({
       aria-pressed={on}
       className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors ${
         on
-          ? "border-[#EFE2CE] bg-[#FDF4E7] text-[#B45F09]"
+          ? "border-[#BFEFD5] bg-[#E8FBF1] text-[#0E7C52]"
           : "border-border text-muted-foreground hover:bg-muted"
       }`}
     >
@@ -772,7 +768,7 @@ function IconAction({
       aria-label={label}
       title={label}
       className={`rounded-md p-1.5 transition-colors ${
-        danger ? "text-[#D92D20] hover:bg-[#FEF3F2]" : "text-[#B45F09] hover:bg-[#FDF7EF]"
+        danger ? "text-[#D92D20] hover:bg-[#FEF3F2]" : "text-[#0E7C52] hover:bg-[#F1FCF6]"
       }`}
     >
       {icon}

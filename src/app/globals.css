@@ -11,24 +11,61 @@
     --card: 0 0% 100%;
     --card-foreground: 220 43% 11%;
 
-    /* Brand — burnt bronze for primary actions */
-    --primary: 30 90% 37%; /* #B45F09 */
-    --primary-foreground: 0 0% 100%;
+    /* Brand — vert d'action. Le libellé est en encre, pas en blanc : le vert
+       est clair, du blanc dessus tomberait sous le seuil de lisibilité. */
+    --primary: 148 66% 62%; /* #5EDE99 */
+    --primary-foreground: 220 43% 11%; /* #101828 */
 
     --muted: 210 20% 97%;
     --muted-foreground: 221 13% 46%; /* #667085 */
 
-    --accent: 34 100% 96%; /* active nav wash */
-    --accent-foreground: 30 88% 40%;
+    --accent: 148 70% 95%; /* #E8FBF1 — active nav wash */
+    --accent-foreground: 157 80% 27%; /* #0E7C52 */
 
     --destructive: 4 74% 49%; /* #D92D20 */
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 16% 93%; /* #EAECF0 */
     --input: 220 16% 90%;
-    --ring: 33 92% 47%;
+    --ring: 156 76% 36%; /* #16A46B */
 
     --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  /* Cadre de la maquette — voir src/lib/viewport.ts. Ces valeurs de repli
+     servent au rendu serveur ; VIEWPORT_SCRIPT les remplace avant la première
+     peinture. */
+  :root {
+    --app-scale: 1;
+    --app-w: 100vw;
+    --app-h: 100vh;
+  }
+
+  html {
+    height: 100%;
+  }
+
+  /*
+   * Le cadre est dimensionné pour remplir la fenêtre exactement : il n'y a
+   * normalement rien à faire défiler. Le défilement ne sert qu'au cas extrême
+   * où la réduction touche son plancher (MIN_SCALE) sur un très petit écran.
+   */
+  #app-frame {
+    width: var(--app-w);
+    height: var(--app-h);
+    zoom: var(--app-scale);
+  }
+
+  /* Repli pour les navigateurs sans `zoom` : même résultat visuel, mais le
+     texte est pixellisé avant réduction au lieu d'être rendu à sa taille. */
+  @supports not (zoom: 1) {
+    #app-frame {
+      zoom: normal;
+      transform: scale(var(--app-scale));
+      transform-origin: 0 0;
+    }
   }
 }
 
@@ -38,6 +75,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    height: 100%;
+    overflow: auto;
+    overscroll-behavior: none;
     font-feature-settings:
       "rlig" 1,
       "calt" 1,

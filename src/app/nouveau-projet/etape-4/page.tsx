@@ -3,12 +3,10 @@
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   Building2,
   CalendarDays,
   ChevronLeft,
-  ChevronRight,
   Clock,
   Diamond,
   Eye,
@@ -24,7 +22,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { PageTitle, RouteMap } from "@/components/shared/page-parts";
+import { PageTitle } from "@/components/shared/page-parts";
 import { WizardSteps } from "@/components/shared/wizard-steps";
 import {
   Bar as ProgressBar,
@@ -54,7 +52,7 @@ const STAT_ICONS: Record<string, React.ReactNode> = {
 
 const CONTENT_ICONS: Record<string, React.ReactNode> = {
   list: <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />,
-  diamond: <Diamond className="h-3.5 w-3.5 text-[#E5A11B]" />,
+  diamond: <Diamond className="h-3.5 w-3.5 text-[#16A46B]" />,
   file: <FileText className="h-3.5 w-3.5 text-muted-foreground" />,
   users: <Users className="h-3.5 w-3.5 text-muted-foreground" />,
 };
@@ -66,7 +64,7 @@ export default function Etape3Page() {
   const router = useRouter();
 
   return (
-    <AppShell role="Chef de projet" notifications={3}>
+    <AppShell notifications={3}>
       <div className="flex h-full flex-col gap-3">
         <PageTitle
           title="Créer un nouveau projet — Étape 4/4"
@@ -124,16 +122,16 @@ export default function Etape3Page() {
                   {GENERATED_GATES.map((g, i) => (
                     <div key={g.id} className="flex min-w-0 flex-1 flex-col items-center">
                       <div className="flex w-full items-center">
-                        <span className={`h-[2px] flex-1 ${i === 0 ? "bg-transparent" : "bg-[#E5A11B]"}`} />
+                        <span className={`h-[2px] flex-1 ${i === 0 ? "bg-transparent" : "bg-[#16A46B]"}`} />
                         <span
                           className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
                             i === GENERATED_GATES.length - 1
-                              ? "border-[#B45F09] bg-[#B45F09]"
-                              : "border-[#E5A11B] bg-white"
+                              ? "border-[#0E7C52] bg-[#0E7C52]"
+                              : "border-[#16A46B] bg-white"
                           }`}
                         />
                         <span
-                          className={`h-[2px] flex-1 ${i === GENERATED_GATES.length - 1 ? "bg-transparent" : "bg-[#E5A11B]"}`}
+                          className={`h-[2px] flex-1 ${i === GENERATED_GATES.length - 1 ? "bg-transparent" : "bg-[#16A46B]"}`}
                         />
                       </div>
                       <p className="mt-1 text-[11px] font-bold text-foreground">{g.id}</p>
@@ -185,12 +183,12 @@ export default function Etape3Page() {
                         <span className="relative h-5 min-w-0 flex-1 border-l border-border">
                           {row.milestone ? (
                             <span
-                              className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1px] bg-[#E5A11B]"
+                              className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1px] bg-[#16A46B]"
                               style={{ left: `${(row.start / 13) * 100}%` }}
                             />
                           ) : (
                             <span
-                              className="absolute top-1/2 h-2 -translate-y-1/2 rounded-[2px] bg-[#C98A2B]"
+                              className="absolute top-1/2 h-2 -translate-y-1/2 rounded-[2px] bg-[#16A46B]"
                               style={{
                                 left: `${(row.start / 13) * 100}%`,
                                 width: `${(row.span / 13) * 100}%`,
@@ -303,14 +301,6 @@ export default function Etape3Page() {
           </Button>
         </div>
 
-        <RouteMap
-          hints={[
-            { action: "Générer le projet", target: "ouvre “Vue projet — Dashboard chef de projet”", icon: <ChevronRight className="h-4 w-4 text-[#B45F09]" /> },
-            { action: "Voir le planning initial", target: "ouvre “Planning détaillé — Risques & conflits”", icon: <Eye className="h-4 w-4 text-[#B45F09]" /> },
-            { action: "Étape précédente", target: "ouvre “Créer un nouveau projet — Étape 3/4”", icon: <ArrowLeft className="h-4 w-4 text-[#B45F09]" /> },
-            { action: "Annuler", target: "retourne à “Vue globale portefeuille projets”", icon: <XCircle className="h-4 w-4 text-[#B45F09]" /> },
-          ]}
-        />
       </div>
     </AppShell>
   );

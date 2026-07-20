@@ -3,11 +3,9 @@
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   CalendarDays,
   ChevronLeft,
-  ChevronRight,
   Clock,
   Gauge,
   MoreVertical,
@@ -17,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { PageTitle, RouteMap } from "@/components/shared/page-parts";
+import { PageTitle } from "@/components/shared/page-parts";
 import { WizardSteps } from "@/components/shared/wizard-steps";
 import {
   Bar as ProgressBar,
@@ -41,7 +39,7 @@ export default function Etape2Page() {
   const router = useRouter();
 
   return (
-    <AppShell role="Chef de projet" notifications={3}>
+    <AppShell notifications={3}>
       <div className="flex h-full flex-col gap-3">
         <PageTitle
           title="Créer un nouveau projet — Étape 3/4"
@@ -141,7 +139,7 @@ export default function Etape2Page() {
           >
             <ul className="space-y-2.5">
               {CAPACITY_RISKS.map((r) => (
-                <li key={r.fn} className="rounded-lg border border-border bg-[#FEFAF3] p-2.5">
+                <li key={r.fn} className="rounded-lg border border-border bg-[#F1FCF6] p-2.5">
                   <div className="flex items-start gap-2">
                     <Dot color={r.color} className="mt-1.5" />
                     <p className="min-w-0 flex-1 text-[12px] text-foreground">
@@ -242,25 +240,6 @@ export default function Etape2Page() {
           </Button>
         </div>
 
-        <RouteMap
-          hints={[
-            {
-              action: "Étape précédente",
-              target: "ouvre “Créer un nouveau projet — Étape 2/4”",
-              icon: <ArrowLeft className="h-4 w-4 text-[#B45F09]" />,
-            },
-            {
-              action: "Continuer vers Prévisualisation & génération",
-              target: "ouvre “Créer un nouveau projet — Étape 4/4”",
-              icon: <ChevronRight className="h-4 w-4 text-[#B45F09]" />,
-            },
-            {
-              action: "Annuler",
-              target: "retourne à “Vue globale portefeuille projets”",
-              icon: <XCircle className="h-4 w-4 text-[#B45F09]" />,
-            },
-          ]}
-        />
       </div>
     </AppShell>
   );

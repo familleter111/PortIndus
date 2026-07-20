@@ -56,11 +56,11 @@ export function ElementPopover({
     <div
       role="dialog"
       aria-label={`Modifier ${row.name}`}
-      className="mt-1.5 shrink-0 animate-fade-in rounded-xl border border-[#EFE2CE] bg-[#FFFCF7] shadow-card"
+      className="mt-1.5 shrink-0 animate-fade-in rounded-xl border border-[#BFEFD5] bg-[#FFFCF7] shadow-card"
     >
       {/* Identité de l'élément */}
       <div className="flex items-center gap-2 border-b border-[#F3E7D3] px-3 py-1">
-        <span className="shrink-0 rounded-md bg-[#FDF4E7] px-1.5 py-0.5 text-[10px] font-bold text-[#B45F09]">
+        <span className="shrink-0 rounded-md bg-[#E8FBF1] px-1.5 py-0.5 text-[10px] font-bold text-[#0E7C52]">
           {row.id}
         </span>
         <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{row.wbs}</span>
@@ -99,7 +99,7 @@ export function ElementPopover({
                 onClick={() => onShapeChange(s.key)}
                 className={`rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${
                   shape === s.key
-                    ? "bg-[#E58A00] text-white"
+                    ? "bg-[#5EDE99] text-[#101828]"
                     : "text-muted-foreground hover:bg-muted"
                 }`}
               >
