@@ -63,6 +63,12 @@ const NAV: NavItem[] = [
         icon: LayoutGrid,
         owns: ["/planning/charge"],
       },
+      {
+        label: "Charge par personne",
+        href: "/planning/personnes",
+        icon: Users,
+        owns: ["/planning/personnes"],
+      },
     ],
   },
   // La confirmation de validation n'est plus un écran : elle se joue dans les

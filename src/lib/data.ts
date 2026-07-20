@@ -1061,68 +1061,157 @@ export const NEW_PROJECT_FUNCTIONS: FunctionLoad[] = [
   { fn: "Logistique", capacity: 800, load: 580, ratio: 73, color: "#2C9C9C" },
 ];
 
-export const CAPACITY_RISKS = [
+
+
+/* --------------------------- Charge par personne -------------------------- */
+
+export interface PersonLoad {
+  name: string;
+  initials: string;
+  fn: string;
+  site: string;
+  color: string;
+  /** Taux d'affectation contractuel, en %. */
+  rate: number;
+  /** Projets du portefeuille sur lesquels la personne intervient. */
+  projects: string[];
+  /** Heures affectées sur l'horizon. */
+  load: number;
+  /**
+   * Heures encore disponibles. Négative quand la personne est engagée au-delà
+   * de sa capacité : c'est le déficit à replacer, et c'est ce qui fait passer
+   * le ratio au-dessus de 100 %.
+   */
+  available: number;
+}
+
+/**
+ * Charge nominative sur l'horizon des douze prochains mois. Les personnes sont
+ * celles qui portent réellement des tâches ailleurs dans l'application — core
+ * team, responsables du WBS, responsables de contributions — pour qu'un nom
+ * ouvert ici se retrouve dans le planning et le suivi d'exécution.
+ */
+export const PEOPLE_LOAD: PersonLoad[] = [
+  { name: "Noura Trabelsi", initials: "NT", fn: "Qualité", site: "Sousse", color: "#D92D20", rate: 100, projects: ["P-DEMO-001", "P-DEMO-003", "P-DEMO-006"], load: 1620, available: -60 },
+  { name: "Youssef Jaziri", initials: "YJ", fn: "Méthodes / Process", site: "Sousse", color: "#3976D3", rate: 100, projects: ["P-DEMO-001", "P-DEMO-007"], load: 1580, available: 160 },
+  { name: "Rachid Ben Amar", initials: "RB", fn: "Qualité", site: "Sousse", color: "#B42318", rate: 100, projects: ["P-DEMO-001", "P-DEMO-005"], load: 1740, available: -140 },
+  { name: "Karim Belhadj", initials: "KB", fn: "Industrialisation", site: "Sousse", color: "#2E7D32", rate: 80, projects: ["P-DEMO-001", "P-DEMO-005"], load: 1180, available: 212 },
+  { name: "Leïla Mansour", initials: "LM", fn: "Direction projet", site: "Sousse", color: "#0E7C52", rate: 100, projects: ["P-DEMO-001", "P-DEMO-004", "P-DEMO-009"], load: 1490, available: 250 },
+  { name: "Sofiane Haddad", initials: "SH", fn: "Qualité", site: "Tunis", color: "#7C3AED", rate: 80, projects: ["P-DEMO-003", "P-DEMO-009"], load: 1310, available: 82 },
+  { name: "Hassan Kacem", initials: "HK", fn: "Achats", site: "Tunis", color: "#8B5E9F", rate: 80, projects: ["P-DEMO-008"], load: 960, available: 432 },
+  { name: "Leila Mokrani", initials: "LM", fn: "Qualité", site: "Sousse", color: "#0891B2", rate: 60, projects: ["P-DEMO-002", "P-DEMO-010"], load: 810, available: 234 },
+  { name: "Yassine Gharbi", initials: "YG", fn: "Production", site: "Sousse", color: "#2C9C9C", rate: 100, projects: ["P-DEMO-002", "P-DEMO-006"], load: 1395, available: 345 },
+  { name: "Sonia Gharbi", initials: "SG", fn: "Achats", site: "Tunis", color: "#E58A00", rate: 60, projects: ["P-DEMO-004", "P-DEMO-010"], load: 690, available: 354 },
+  { name: "Mehdi Aloui", initials: "MA", fn: "Logistique", site: "Sousse", color: "#16A46B", rate: 60, projects: ["P-DEMO-002"], load: 640, available: 404 },
+  { name: "Rim Bouazizi", initials: "RB", fn: "R&D Produit", site: "Tunis", color: "#D97706", rate: 80, projects: ["P-DEMO-004", "P-DEMO-007"], load: 1240, available: 152 },
+];
+
+/**
+ * Le ratio charge/capacité se calcule : capacité = charge + disponible. Écrire
+ * un ratio à la main permettrait qu'il contredise les deux colonnes voisines.
+ */
+export function personRatio(p: PersonLoad): number {
+  return Math.round((p.load / (p.load + p.available)) * 100);
+}
+
+export function personCapacity(p: PersonLoad): number {
+  return p.load + p.available;
+}
+
+/** Seuils partagés par le tableau et les indicateurs. */
+export function loadLevel(ratio: number): "surcharge" | "limite" | "sain" {
+  if (ratio > 100) return "surcharge";
+  if (ratio >= 90) return "limite";
+  return "sain";
+}
+
+
+
+/**
+ * Planning généré, en phases repliables. `start` et `span` sont exprimés en
+ * mois depuis le kickoff, sur une grille de douze : le Gantt se dessine à
+ * partir de ces valeurs, aucune barre n'est positionnée à la main.
+ */
+export interface GenTask {
+  id: string;
+  label: string;
+  owner: string;
+  fn: string;
+  start: number;
+  span: number;
+  load: number;
+  /** Une tâche du chemin critique porte la date de gate. */
+  critical?: boolean;
+}
+
+export interface GenPhase {
+  gate: string;
+  label: string;
+  /** Date du jalon de fin de phase. */
+  date: string;
+  color: string;
+  tasks: GenTask[];
+}
+
+export const GENERATED_PHASES: GenPhase[] = [
   {
-    fn: "Qualité",
-    title: "surcharge de 190 h",
-    level: "Critique",
-    impact: "Impact potentiel sur G2/G3",
-    reco: "ajouter 0,2 ETP ou replanifier",
-    color: "#D92D20",
+    gate: "G0", label: "Kickoff & cadrage", date: "01/10/2026", color: "#3976D3",
+    tasks: [
+      { id: "T01", label: "Constituer l'équipe projet", owner: "Leïla Mansour", fn: "Direction projet", start: 0, span: 0.5, load: 40 },
+      { id: "T02", label: "Analyser le cahier des charges client", owner: "Rim Bouazizi", fn: "R&D Produit", start: 0.3, span: 1, load: 120 },
+      { id: "T03", label: "Établir le plan qualité projet", owner: "Noura Trabelsi", fn: "Qualité", start: 0.8, span: 1.2, load: 160 },
+    ],
   },
   {
-    fn: "Process",
-    title: "marge faible de 180 h",
-    level: "Élevé",
-    impact: "Impact potentiel sur G3",
-    reco: "réduire charge ou lisser planning",
-    color: "#E58A00",
+    gate: "G1", label: "Planification produit", date: "15/01/2027", color: "#3976D3",
+    tasks: [
+      { id: "T04", label: "Définir les caractéristiques spéciales", owner: "Rim Bouazizi", fn: "R&D Produit", start: 1.5, span: 1.5, load: 180 },
+      { id: "T05", label: "Réaliser DFMEA produit", owner: "Noura Trabelsi", fn: "Qualité", start: 2, span: 2, load: 280, critical: true },
+      { id: "T06", label: "Consulter le panel fournisseurs", owner: "Sonia Gharbi", fn: "Achats", start: 2.5, span: 2, load: 200 },
+    ],
+  },
+  {
+    gate: "G2", label: "Conception & développement", date: "30/04/2027", color: "#E58A00",
+    tasks: [
+      { id: "T07", label: "Figer la définition produit", owner: "Rim Bouazizi", fn: "R&D Produit", start: 4, span: 2, load: 320, critical: true },
+      { id: "T08", label: "Établir le diagramme de flux process", owner: "Youssef Jaziri", fn: "Méthodes / Process", start: 4.5, span: 1.5, load: 190 },
+      { id: "T09", label: "Réaliser PFMEA process", owner: "Noura Trabelsi", fn: "Qualité", start: 5, span: 2, load: 340, critical: true },
+      { id: "T10", label: "Lancer la conception outillage", owner: "Karim Belhadj", fn: "Industrialisation", start: 5.5, span: 2, load: 260 },
+    ],
+  },
+  {
+    gate: "G3", label: "Process Freeze", date: "30/06/2027", color: "#D92D20",
+    tasks: [
+      { id: "T11", label: "Suivre la fabrication outillage", owner: "Karim Belhadj", fn: "Industrialisation", start: 7, span: 2, load: 300, critical: true },
+      { id: "T12", label: "Élaborer le plan de contrôle", owner: "Noura Trabelsi", fn: "Qualité", start: 7.5, span: 1.5, load: 220 },
+      { id: "T13", label: "Réaliser les essais à froid", owner: "Karim Belhadj", fn: "Industrialisation", start: 8, span: 1, load: 140 },
+      { id: "T14", label: "Valider les moyens de mesure", owner: "Youssef Jaziri", fn: "Méthodes / Process", start: 8.2, span: 1, load: 130 },
+    ],
+  },
+  {
+    gate: "G4", label: "Validation produit & process", date: "15/08/2027", color: "#2E7D32",
+    tasks: [
+      { id: "T15", label: "Préparer la production trial", owner: "Youssef Jaziri", fn: "Méthodes / Process", start: 9, span: 1.2, load: 210, critical: true },
+      { id: "T16", label: "Réaliser MSA et capabilité", owner: "Noura Trabelsi", fn: "Qualité", start: 9.5, span: 1.3, load: 240 },
+      { id: "T17", label: "Constituer le dossier PPAP", owner: "Noura Trabelsi", fn: "Qualité", start: 10, span: 1, load: 180, critical: true },
+    ],
+  },
+  {
+    gate: "G5", label: "SOP & retour d'expérience", date: "30/09/2027", color: "#2E7D32",
+    tasks: [
+      { id: "T18", label: "Valider l'emballage et les flux", owner: "Mehdi Aloui", fn: "Logistique", start: 10.5, span: 1, load: 120 },
+      { id: "T19", label: "Transférer en production série", owner: "Leïla Mansour", fn: "Direction projet", start: 11, span: 1, load: 160, critical: true },
+    ],
   },
 ];
 
-export const RESOURCE_ALLOCATION = [
-  { name: "Leila Mansour", fn: "Qualité", rate: "100 %", parallel: 2, load: 1480, available: 460, ratio: 108, color: "#D92D20" },
-  { name: "Antoine Dubois", fn: "Produit / Design", rate: "80 %", parallel: 2, load: 1360, available: 240, ratio: 85, color: "#3976D3" },
-  { name: "Sara Benali", fn: "Process", rate: "100 %", parallel: 2, load: 1620, available: 180, ratio: 92, color: "#E58A00" },
-  { name: "Marc Petit", fn: "Production", rate: "80 %", parallel: 2, load: 1280, available: 160, ratio: 90, color: "#2E7D32" },
-  { name: "Julien Moreau", fn: "Achats", rate: "80 %", parallel: 1, load: 816, available: 184, ratio: 85, color: "#8B5E9F" },
-  { name: "Claire Roussel", fn: "Logistique", rate: "60 %", parallel: 1, load: 416, available: 144, ratio: 73, color: "#2C9C9C" },
-];
-
-export const GENERATED_STATS = [
-  { value: "6", label: "Gates APQP", icon: "flag" },
-  { value: "18", label: "Tâches initiales", icon: "list" },
-  { value: "6", label: "Fonctions allouées", icon: "users" },
-  { value: "10", label: "Ressources", icon: "team" },
-  { value: "10 920 h", label: "Estimation charge globale", icon: "clock" },
-  { value: "94 %", label: "Charge / capacité", icon: "gauge" },
-];
-
-export const GENERATED_GATES = [
-  { id: "G0", label: "Kickoff", date: "01/10/2026" },
-  { id: "G1", label: "Feasibility", date: "15/01/2027" },
-  { id: "G2", label: "Design Freeze", date: "30/04/2027" },
-  { id: "G3", label: "Process Freeze", date: "30/06/2027" },
-  { id: "G4", label: "PPAP Approval", date: "15/08/2027" },
-  { id: "G5", label: "SOP", date: "30/09/2027" },
-];
+/** Toutes les tâches à plat — pour le tableau et les totaux. */
+export const GENERATED_TASKS: (GenTask & { gate: string })[] = GENERATED_PHASES.flatMap((p) =>
+  p.tasks.map((t) => ({ ...t, gate: p.gate })),
+);
 
 /** Mini-Gantt de prévisualisation : offset/durée en douzièmes de la période. */
-export const GENERATED_PLAN = [
-  { gate: "G0 Kickoff", period: "01/10/26 – 15/01/27", start: 0, span: 3.5, milestone: true },
-  { gate: "G1 Feasibility", period: "15/01/27 – 30/04/27", start: 3.5, span: 3.5 },
-  { gate: "G2 Design Freeze", period: "30/04/27 – 30/06/27", start: 7, span: 2 },
-  { gate: "G3 Process Freeze", period: "30/06/27 – 15/08/27", start: 9, span: 1.5 },
-  { gate: "G4 PPAP Approval", period: "15/08/27 – 30/09/27", start: 10.5, span: 1.5 },
-  { gate: "G5 SOP", period: "30/09/27", start: 12, span: 0, milestone: true },
-];
 
-export const GENERATED_CONTENT = [
-  { label: "18 tâches initiales", icon: "list" },
-  { label: "6 jalons", icon: "diamond" },
-  { label: "11 livrables clés", icon: "file" },
-  { label: "Équipe type pré-affectée", icon: "users" },
-];
 
 /* ---------------------------- Planning détaillé --------------------------- */
 
@@ -1422,6 +1511,108 @@ export const LOAD_KPIS = [
 ];
 
 /* ------------------------------ Conflit charge ---------------------------- */
+
+/* --------------------- Visualisation des risques & conflits ---------------- */
+
+/** Semaines couvertes par la vue conflits — l'horizon des deux gates à venir. */
+export const CONFLICT_WEEKS = [
+  "S 51", "S 52", "S 01", "S 02", "S 03", "S 04", "S 05", "S 06", "S 07", "S 08",
+];
+
+export interface ConflictLane {
+  person: string;
+  initials: string;
+  fn: string;
+  color: string;
+  /** Capacité hebdomadaire de la personne, en heures. */
+  weekly: number;
+  /** Charge par semaine, alignée sur CONFLICT_WEEKS. */
+  load: number[];
+  /** Tâches à l'origine de la charge, avec la semaine de début et la durée. */
+  tasks: { id: string; label: string; project: string; from: number; span: number }[];
+}
+
+/**
+ * Charge hebdomadaire nominative sur l'horizon. C'est la matière première de la
+ * vue conflits : un dépassement se lit là où `load[i] > weekly`, et les tâches
+ * qui se chevauchent sur cette semaine en sont la cause.
+ */
+export const CONFLICT_LANES: ConflictLane[] = [
+  {
+    person: "Noura Trabelsi",
+    initials: "NT",
+    fn: "Qualité",
+    color: "#D92D20",
+    weekly: 35,
+    load: [28, 30, 32, 38, 46, 44, 39, 30, 26, 24],
+    tasks: [
+      { id: "T09", label: "Réaliser PFMEA process", project: "P-DEMO-001", from: 2, span: 4 },
+      { id: "T10", label: "Plan de contrôle pré-lancement", project: "P-DEMO-001", from: 4, span: 3 },
+      { id: "T22", label: "Revue AMDEC procédé", project: "P-DEMO-003", from: 3, span: 3 },
+    ],
+  },
+  {
+    person: "Youssef Jaziri",
+    initials: "YJ",
+    fn: "Méthodes / Process",
+    color: "#3976D3",
+    weekly: 35,
+    load: [30, 33, 36, 40, 42, 34, 31, 28, 27, 25],
+    tasks: [
+      { id: "T11", label: "Suivre fabrication outillage", project: "P-DEMO-001", from: 0, span: 5 },
+      { id: "T31", label: "Usinage moule injection", project: "P-DEMO-007", from: 2, span: 4 },
+    ],
+  },
+  {
+    person: "Rachid Ben Amar",
+    initials: "RB",
+    fn: "Qualité",
+    color: "#B42318",
+    weekly: 35,
+    load: [34, 38, 41, 43, 40, 37, 36, 33, 30, 29],
+    tasks: [
+      { id: "C06", label: "Corriger défaut porosité carter", project: "P-DEMO-001", from: 0, span: 6 },
+      { id: "C02", label: "Valider capacité machine MOP", project: "P-DEMO-005", from: 1, span: 5 },
+    ],
+  },
+  {
+    person: "Karim Belhadj",
+    initials: "KB",
+    fn: "Industrialisation",
+    color: "#2E7D32",
+    weekly: 28,
+    load: [18, 20, 22, 24, 26, 27, 25, 22, 20, 18],
+    tasks: [
+      { id: "T13", label: "Essais à froid outillage", project: "P-DEMO-001", from: 3, span: 4 },
+    ],
+  },
+];
+
+/**
+ * Conflits d'outillage ou de moyen : deux tâches réclamant le même équipement
+ * sur des périodes qui se recouvrent. Ce n'est pas une surcharge de personne,
+ * et le traitement diffère — d'où une liste distincte.
+ */
+export const EQUIPMENT_CONFLICTS = [
+  {
+    id: "presse",
+    resource: "Presse 800 t — ligne 04",
+    weeks: "S 03 → S 05",
+    a: { task: "Essais à froid outillage", project: "P-DEMO-001" },
+    b: { task: "Requalification série", project: "P-DEMO-005" },
+    overlap: "12 jours",
+    level: "Critique" as const,
+  },
+  {
+    id: "mmt",
+    resource: "MMT — laboratoire métrologie",
+    weeks: "S 04 → S 06",
+    a: { task: "Réaliser MSA et capabilité", project: "P-DEMO-001" },
+    b: { task: "Étude capabilité initiale", project: "P-DEMO-003" },
+    overlap: "6 jours",
+    level: "Majeur" as const,
+  },
+];
 
 export const RESOURCE_CONFLICT = {
   resource: "Noura Trabelsi",

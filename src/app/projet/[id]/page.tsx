@@ -16,7 +16,6 @@ import {
   Gauge,
   Layers,
   LineChart,
-  Plus,
   ShieldCheck,
   Tag,
   Target,
@@ -71,6 +70,12 @@ const KPI_ICONS: Record<string, React.ReactNode> = {
   shield: <ShieldCheck className="h-3.5 w-3.5 text-[#E58A00]" />,
 };
 
+const HEALTH_META = {
+  green: { label: "Vert", color: "#2E7D32" },
+  orange: { label: "Orange", color: "#E58A00" },
+  red: { label: "Rouge", color: "#D92D20" },
+} as const;
+
 const DELIVERABLE_TONE: Record<string, "green" | "amber" | "blue"> = {
   Approuvé: "green",
   "En cours": "amber",
@@ -108,7 +113,17 @@ export default function ProjetPage() {
             { icon: <FileText className="h-4 w-4 text-muted-foreground" />, label: "Nom du projet", value: PROJECT.name },
             { icon: <Building2 className="h-4 w-4 text-muted-foreground" />, label: "Client", value: PROJECT.client },
             { icon: <Layers className="h-4 w-4 text-muted-foreground" />, label: "Phase actuelle", value: <span className="text-[#3976D3]">{PROJECT.phase}</span> },
-            { icon: <Dot color="#E58A00" className="h-3 w-3" />, label: "Santé projet", value: <span className="text-[#E58A00]">Orange</span> },
+            // La santé suit le projet ouvert : « Orange » en dur affichait la
+            // mauvaise couleur sur un projet vert ou rouge.
+            {
+              icon: <Dot color={HEALTH_META[PROJECT.health].color} className="h-3 w-3" />,
+              label: "Santé projet",
+              value: (
+                <span style={{ color: HEALTH_META[PROJECT.health].color }}>
+                  {HEALTH_META[PROJECT.health].label}
+                </span>
+              ),
+            },
             { icon: <UserRound className="h-4 w-4 text-muted-foreground" />, label: "Chef de projet", value: PROJECT.manager },
             { icon: <CalendarDays className="h-4 w-4 text-muted-foreground" />, label: "SOP", value: PROJECT.sop },
           ]}
@@ -150,7 +165,9 @@ export default function ProjetPage() {
             <div className="flex flex-1 items-center gap-2.5 px-4 py-2.5">
               <RadialGauge value={PROJECT_GATE.readiness} />
               <div className="leading-tight">
-                <p className="text-[11px] text-muted-foreground">Readiness G3</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Readiness {APQP_GATES[PROJECT.gateIndex]?.id ?? ""}
+                </p>
                 <p className="text-[15px] font-bold text-foreground">{PROJECT_GATE.readiness} %</p>
               </div>
             </div>
@@ -512,8 +529,9 @@ export default function ProjetPage() {
           </Panel>
         </div>
 
-        {/* Footer actions */}
-        <div className="grid shrink-0 grid-cols-4 gap-2.5">
+        {/* Footer actions — la création de projet n'est pas ici : elle a un
+            point d'entrée unique, la liste des projets. */}
+        <div className="grid shrink-0 grid-cols-3 gap-2.5">
           <Button onClick={() => router.push("/planning")}>
             <CalendarDays className="h-4 w-4" />
             Ouvrir le planning
@@ -525,10 +543,6 @@ export default function ProjetPage() {
           <Button onClick={() => router.push("/projet")}>
             <FolderClosed className="h-4 w-4" />
             Retour aux projets
-          </Button>
-          <Button variant="primary" onClick={() => router.push("/nouveau-projet/etape-1")}>
-            <Plus className="h-4 w-4" />
-            Créer un projet
           </Button>
         </div>
       </div>

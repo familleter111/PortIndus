@@ -41,6 +41,7 @@ import {
   type RowAction,
 } from "@/components/planning/wbs-table";
 import { ElementPopover, type Shape } from "@/components/planning/element-panel";
+import { ConflictView } from "@/components/planning/conflict-view";
 import {
   AddMilestoneModal,
   AddSubtaskModal,
@@ -67,7 +68,14 @@ const RISK_TONE: Record<string, ChipTone> = {
   Faible: "slate",
 };
 
-type ModalKey = "milestone" | "task" | "subtask" | "conflict" | "simulation" | null;
+type ModalKey =
+  | "milestone"
+  | "task"
+  | "subtask"
+  | "conflict"
+  | "conflictView"
+  | "simulation"
+  | null;
 
 export default function PlanningPage() {
   const router = useRouter();
@@ -533,6 +541,14 @@ export default function PlanningPage() {
             <BarChart3 className="h-3.5 w-3.5" />
             Voir impact capacité
           </Button>
+          <Button
+            variant="amber"
+            className="px-2.5 py-1.5 text-[11px]"
+            onClick={() => setModal("conflictView")}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Visualiser les risques &amp; conflits
+          </Button>
 
           {/* Actions sur l'élément sélectionné : ajouter / modifier / supprimer */}
           {selectedRow ? (
@@ -693,6 +709,12 @@ export default function PlanningPage() {
         onCreate={createElement}
       />
       <ResourceConflictModal open={modal === "conflict"} onClose={() => setModal(null)} />
+      <ConflictView
+        open={modal === "conflictView"}
+        onClose={() => setModal(null)}
+        // « Analyser et arbitrer » enchaîne sur la modale qui porte les solutions.
+        onOpenResource={() => setModal("conflict")}
+      />
       <SimulationModal open={modal === "simulation"} onClose={() => setModal(null)} />
 
       <Modal
