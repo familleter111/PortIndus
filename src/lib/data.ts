@@ -437,12 +437,101 @@ export const APQP_GATES = [
   { id: "G5", label: "Feedback, évaluation & amélioration" },
 ];
 
-export const DELIVERABLES = [
-  { name: "DFMEA", status: "Approuvé", progress: 100 },
-  { name: "PFMEA", status: "En cours", progress: 62 },
-  { name: "Plan de contrôle", status: "En revue", progress: 48 },
-  { name: "Process Flow Diagram", status: "Approuvé", progress: 100 },
+/* ------------------- Arborescence Gate → Livrable → Tâche ----------------- */
+
+/**
+ * Le référentiel se lit de haut en bas :
+ *
+ *   Programme ─▶ Gate / Jalon ─▶ Livrable / Lot de travail ─▶ Tâche ─▶ Sous-tâche
+ *
+ * Chaque tâche contribue à un livrable, chaque livrable sécurise une gate.
+ * C'est ce chaînage qui permet de dire, depuis une action élémentaire, quelle
+ * décision de passage elle sécurise — et inversement, ce qui bloque une gate.
+ */
+export type Criticality = "Critique" | "Élevée" | "Moyenne";
+
+/** Statut saisi. « En retard » n'en fait pas partie : il se déduit de la date. */
+export type DeliverableStatus = "Approuvé" | "En revue" | "En cours" | "Planifié";
+export type DeliverableDisplayStatus = DeliverableStatus | "En retard";
+
+export interface GateDeliverable {
+  id: string;
+  name: string;
+  /** Gate sécurisée par ce livrable (id dans APQP_GATES). */
+  gate: string;
+  /** Fonction porteuse — sert à proposer un responsable cohérent. */
+  fn: string;
+  owner: string;
+  criticality: Criticality;
+  status: DeliverableStatus;
+  progress: number;
+  /** Date cible, jj/mm/aaaa. */
+  dueDate: string;
+}
+
+export const GATE_DELIVERABLES: GateDeliverable[] = [
+  /* --- G0 — Plan & Définir le programme ---------------------------------- */
+  { id: "LIV-G0-1", name: "Cahier des charges client (VOC)", gate: "G0", fn: "Direction projet", owner: "Leïla Mansour", criticality: "Critique", status: "Approuvé", progress: 100, dueDate: "30/01/2026" },
+  { id: "LIV-G0-2", name: "Revue de faisabilité & chiffrage", gate: "G0", fn: "Industrialisation", owner: "Karim Belhadj", criticality: "Élevée", status: "Approuvé", progress: 100, dueDate: "13/02/2026" },
+
+  /* --- G1 — Planification produit ---------------------------------------- */
+  { id: "LIV-G1-1", name: "Plan qualité projet (PQP)", gate: "G1", fn: "Qualité", owner: "Noura Trabelsi", criticality: "Critique", status: "Approuvé", progress: 100, dueDate: "10/04/2026" },
+  { id: "LIV-G1-2", name: "Objectifs qualité, fiabilité & coûts", gate: "G1", fn: "Direction projet", owner: "Leïla Mansour", criticality: "Moyenne", status: "Approuvé", progress: 100, dueDate: "24/04/2026" },
+  { id: "LIV-G1-3", name: "Diagramme de flux process préliminaire", gate: "G1", fn: "Méthodes / Process", owner: "Youssef Jaziri", criticality: "Élevée", status: "Approuvé", progress: 100, dueDate: "15/05/2026" },
+
+  /* --- G2 — Conception & Développement produit ---------------------------- */
+  { id: "LIV-G2-1", name: "DFMEA produit", gate: "G2", fn: "R&D Produit", owner: "Rim Bouazizi", criticality: "Critique", status: "Approuvé", progress: 100, dueDate: "04/09/2026" },
+  { id: "LIV-G2-2", name: "Dossier de définition & plans cotés", gate: "G2", fn: "R&D Produit", owner: "Rim Bouazizi", criticality: "Moyenne", status: "Approuvé", progress: 100, dueDate: "25/09/2026" },
+  { id: "LIV-G2-3", name: "Revue de conception (Design Review)", gate: "G2", fn: "R&D Produit", owner: "Rim Bouazizi", criticality: "Élevée", status: "Approuvé", progress: 100, dueDate: "18/09/2026" },
+  // Échéance dépassée et non approuvé : s'affichera « En retard ».
+  { id: "LIV-G2-4", name: "Plan de validation produit (DVP&R)", gate: "G2", fn: "R&D Produit", owner: "Rim Bouazizi", criticality: "Critique", status: "En revue", progress: 85, dueDate: "09/10/2026" },
+
+  /* --- G3 — Process Freeze (gate en préparation) -------------------------- */
+  { id: "LIV-G3-1", name: "PFMEA process", gate: "G3", fn: "Méthodes / Process", owner: "Youssef Jaziri", criticality: "Critique", status: "En cours", progress: 62, dueDate: "15/01/2027" },
+  { id: "LIV-G3-2", name: "Process Flow Diagram", gate: "G3", fn: "Méthodes / Process", owner: "Youssef Jaziri", criticality: "Élevée", status: "Approuvé", progress: 100, dueDate: "27/11/2026" },
+  { id: "LIV-G3-3", name: "Plan de contrôle série", gate: "G3", fn: "Qualité", owner: "Rachid Ben Amar", criticality: "Critique", status: "En revue", progress: 48, dueDate: "22/01/2027" },
+  { id: "LIV-G3-4", name: "Plan de maîtrise des moyens (MSA / R&R)", gate: "G3", fn: "Qualité", owner: "Noura Trabelsi", criticality: "Élevée", status: "En cours", progress: 40, dueDate: "29/01/2027" },
+  { id: "LIV-G3-5", name: "Instructions de travail poste", gate: "G3", fn: "Production", owner: "Yassine Gharbi", criticality: "Moyenne", status: "En cours", progress: 20, dueDate: "05/02/2027" },
+  { id: "LIV-G3-6", name: "Moyens industriels & capacité ligne", gate: "G3", fn: "Industrialisation", owner: "Karim Belhadj", criticality: "Critique", status: "En cours", progress: 35, dueDate: "12/02/2027" },
+  { id: "LIV-G3-7", name: "Qualification fournisseurs rang 1", gate: "G3", fn: "Achats", owner: "Hassan Kacem", criticality: "Élevée", status: "En cours", progress: 60, dueDate: "05/02/2027" },
+
+  /* --- G4 — Validation produit & process ---------------------------------- */
+  { id: "LIV-G4-1", name: "Rapport d'essais de validation", gate: "G4", fn: "R&D Produit", owner: "Rim Bouazizi", criticality: "Critique", status: "En cours", progress: 55, dueDate: "30/04/2027" },
+  { id: "LIV-G4-2", name: "Étude capabilité Cp / Cpk", gate: "G4", fn: "Qualité", owner: "Leila Mokrani", criticality: "Élevée", status: "Planifié", progress: 0, dueDate: "21/05/2027" },
+  { id: "LIV-G4-3", name: "Run @ Rate — capabilité série", gate: "G4", fn: "Industrialisation", owner: "Karim Belhadj", criticality: "Critique", status: "Planifié", progress: 0, dueDate: "28/05/2027" },
+  { id: "LIV-G4-4", name: "Dossier PPAP niveau 3", gate: "G4", fn: "Qualité", owner: "Rachid Ben Amar", criticality: "Critique", status: "Planifié", progress: 0, dueDate: "11/06/2027" },
+
+  /* --- G5 — Feedback, évaluation & amélioration --------------------------- */
+  { id: "LIV-G5-1", name: "Rapport 8D & retours d'expérience", gate: "G5", fn: "Qualité", owner: "Sofiane Haddad", criticality: "Élevée", status: "En cours", progress: 30, dueDate: "12/03/2027" },
+  { id: "LIV-G5-2", name: "Bilan de capitalisation projet", gate: "G5", fn: "Direction projet", owner: "Leïla Mansour", criticality: "Moyenne", status: "Planifié", progress: 0, dueDate: "24/09/2027" },
 ];
+
+export function deliverableById(id: string): GateDeliverable | undefined {
+  return GATE_DELIVERABLES.find((d) => d.id === id);
+}
+
+/** Libellé de la gate d'un livrable, pour l'afficher en contexte. */
+export function gateLabel(gateId: string): string {
+  const g = APQP_GATES.find((x) => x.id === gateId);
+  return g ? `${g.id} — ${g.label}` : gateId;
+}
+
+export function deliverablesForGate(gateId: string): GateDeliverable[] {
+  return GATE_DELIVERABLES.filter((d) => d.gate === gateId);
+}
+
+/**
+ * Un livrable non approuvé dont l'échéance est passée est en retard. Le déduire
+ * évite qu'un statut saisi contredise la date affichée juste à côté.
+ */
+export function deliverableStatus(d: GateDeliverable): DeliverableDisplayStatus {
+  return d.status !== "Approuvé" && dateKey(d.dueDate) < dateKey(STATUS_DATE)
+    ? "En retard"
+    : d.status;
+}
+
+/** Livrables mis en avant sur le tableau de bord d'un projet : ceux de sa gate. */
+export const DELIVERABLES = deliverablesForGate("G3").slice(0, 4);
 
 /* ----------------------------- Suivi d'exécution -------------------------- */
 
@@ -460,6 +549,37 @@ export const DELIVERABLES = [
  */
 export type ContribStatus = "Créée" | "En cours" | "À valider" | "Validée";
 export type ContribPriority = "Critique" | "Haute" | "Moyenne" | "Basse";
+
+/**
+ * Trois niveaux d'engagement, tous rattachés à un livrable — lui-même rattaché
+ * à une gate :
+ *
+ *   Jalon      le livrable dans son ensemble, tel qu'il sera validé en revue
+ *              de gate. Pas de parent : il se rattache directement au livrable.
+ *   Tâche      un lot du livrable — un livrable complet ou une partie —
+ *              confié à une personne avec une échéance.
+ *   Sous-tâche une action élémentaire à l'intérieur d'une tâche.
+ *
+ * Le niveau détermine ce qu'on peut choisir comme parent : c'est `parentLevel`
+ * qui l'énonce une fois pour toutes, plutôt que chaque écran à sa façon.
+ */
+export type ContribLevel = "Jalon" | "Tâche" | "Sous-tâche";
+
+export const CONTRIB_LEVELS: ContribLevel[] = ["Jalon", "Tâche", "Sous-tâche"];
+
+/** Une couleur par niveau, partagée par tous les écrans qui l'affichent. */
+export const LEVEL_COLOR: Record<ContribLevel, string> = {
+  Jalon: "#8B5E9F",
+  Tâche: "#3976D3",
+  "Sous-tâche": "#0E7C52",
+};
+
+/** Niveau attendu du parent. `null` pour un jalon, qui n'en a pas. */
+export function parentLevel(level: ContribLevel): ContribLevel | null {
+  if (level === "Sous-tâche") return "Tâche";
+  if (level === "Tâche") return "Jalon";
+  return null;
+}
 export type StepStatus = "À faire" | "En cours" | "Terminée";
 export type EvidenceStatus = "En attente de validation" | "Validée" | "Refusée";
 
@@ -504,7 +624,12 @@ export interface ContribUpdate {
 export interface Contribution {
   id: string;
   title: string;
-  reference: string;
+  /** Niveau d'engagement — voir `ContribLevel`. */
+  level: ContribLevel;
+  /** Livrable rattaché (id dans GATE_DELIVERABLES) : porte aussi la gate. */
+  deliverableId: string;
+  /** Contribution de niveau supérieur. `null` pour un jalon. */
+  parentId: string | null;
   owner: string;
   ownerInitials: string;
   priority: ContribPriority;
@@ -546,7 +671,9 @@ export const CONTRIBUTIONS: Contribution[] = [
   {
     id: "CTR-0001",
     title: "Clore action étanchéité process",
-    reference: "PFMEA process",
+    level: "Sous-tâche",
+    deliverableId: "LIV-G3-1",
+    parentId: "CTR-0009",
     owner: "Noura Trabelsi",
     ownerInitials: "NT",
     priority: "Critique",
@@ -576,7 +703,9 @@ export const CONTRIBUTIONS: Contribution[] = [
   {
     id: "CTR-0002",
     title: "Valider capacité machine MOP",
-    reference: "Plan de contrôle",
+    level: "Sous-tâche",
+    deliverableId: "LIV-G3-3",
+    parentId: "CTR-0004",
     owner: "Rachid Ben Amar",
     ownerInitials: "RB",
     priority: "Haute",
@@ -622,7 +751,9 @@ export const CONTRIBUTIONS: Contribution[] = [
   {
     id: "CTR-0003",
     title: "Mettre à jour AMDEC procédé",
-    reference: "PFMEA process",
+    level: "Jalon",
+    deliverableId: "LIV-G3-1",
+    parentId: null,
     owner: "Sofiane Haddad",
     ownerInitials: "SH",
     priority: "Critique",
@@ -659,7 +790,9 @@ export const CONTRIBUTIONS: Contribution[] = [
   {
     id: "CTR-0004",
     title: "Réaliser étude capabilité initiale",
-    reference: "Plan de contrôle",
+    level: "Tâche",
+    deliverableId: "LIV-G3-3",
+    parentId: null,
     owner: "Leila Mokrani",
     ownerInitials: "LM",
     priority: "Haute",
@@ -699,7 +832,9 @@ export const CONTRIBUTIONS: Contribution[] = [
   {
     id: "CTR-0005",
     title: "Qualifier fournisseur joint torique",
-    reference: "Plan de maîtrise",
+    level: "Jalon",
+    deliverableId: "LIV-G3-7",
+    parentId: null,
     owner: "Hassan Kacem",
     ownerInitials: "HK",
     priority: "Moyenne",
@@ -736,7 +871,9 @@ export const CONTRIBUTIONS: Contribution[] = [
   {
     id: "CTR-0006",
     title: "Corriger défaut porosité carter",
-    reference: "8D-2025-014",
+    level: "Tâche",
+    deliverableId: "LIV-G5-1",
+    parentId: null,
     owner: "Rachid Ben Amar",
     ownerInitials: "RB",
     priority: "Critique",
@@ -774,7 +911,9 @@ export const CONTRIBUTIONS: Contribution[] = [
   {
     id: "CTR-0007",
     title: "Archiver rapport essai corrosion",
-    reference: "Rapport essais",
+    level: "Tâche",
+    deliverableId: "LIV-G4-1",
+    parentId: null,
     owner: "Leila Mokrani",
     ownerInitials: "LM",
     priority: "Basse",
@@ -813,7 +952,9 @@ export const CONTRIBUTIONS: Contribution[] = [
   {
     id: "CTR-0008",
     title: "Déployer standard travail opérateur",
-    reference: "Instruction de travail",
+    level: "Jalon",
+    deliverableId: "LIV-G3-5",
+    parentId: null,
     owner: "Yassine Gharbi",
     ownerInitials: "YG",
     priority: "Moyenne",
@@ -834,6 +975,50 @@ export const CONTRIBUTIONS: Contribution[] = [
         initials: "YG",
         at: "11/12/2026 09:10",
         lines: ["Contribution démarrée"],
+      },
+    ],
+  },
+  {
+    // Maillon intermédiaire de la chaîne PFMEA :
+    // CTR-0003 (jalon) ─▶ CTR-0009 (tâche) ─▶ CTR-0001 (sous-tâche).
+    id: "CTR-0009",
+    title: "Recoter les criticités S / O / D",
+    level: "Tâche",
+    deliverableId: "LIV-G3-1",
+    parentId: "CTR-0003",
+    owner: "Youssef Jaziri",
+    ownerInitials: "YJ",
+    priority: "Haute",
+    status: "En cours",
+    progress: 55,
+    dueDate: "08/01/2027",
+    lastUpdate: "14/12/2026 16:05",
+    expected: "Cotations révisées sur les 12 causes à RPN > 100",
+    comment: "Revue multifonctionnelle tenue le 12/12, reste 4 causes à arbitrer.",
+    contributors: [
+      { name: "Youssef Jaziri", initials: "YJ" },
+      { name: "Noura Trabelsi", initials: "NT" },
+    ],
+    steps: stepsFor(55),
+    evidence: [
+      {
+        id: "e8",
+        file: "Cotation_SOD_revue_v3.xlsx",
+        size: "0.6 Mo",
+        type: "Analyse",
+        addedAt: "14/12/2026 16:05",
+        addedBy: "Youssef Jaziri",
+        status: "En attente de validation",
+      },
+    ],
+    history: [
+      {
+        id: "u8",
+        kind: "progress",
+        author: "Youssef Jaziri",
+        initials: "YJ",
+        at: "14/12/2026 16:05",
+        lines: ["Progression portée à 55 %", "Preuve ajoutée : Cotation_SOD_revue_v3.xlsx"],
       },
     ],
   },
@@ -861,6 +1046,50 @@ export function displayStatus(c: Contribution): DisplayStatus {
 /** Soumission autorisée seulement à 100 % et toutes les étapes terminées. */
 export function canSubmit(c: Contribution): boolean {
   return c.progress >= 100 && c.steps.every((s) => s.status === "Terminée");
+}
+
+/* ------------------- Rattachement d'une contribution ---------------------- */
+
+/** Le livrable auquel la contribution se rattache. */
+export function contribDeliverable(c: Contribution): GateDeliverable | undefined {
+  return deliverableById(c.deliverableId);
+}
+
+/**
+ * Chemin lisible d'une contribution : gate ▸ livrable ▸ parent éventuel.
+ * Se recalcule à partir du rattachement, pour qu'aucun écran n'affiche une
+ * gate qui ne serait plus celle du livrable choisi.
+ */
+export function contribPath(c: Contribution, all: Contribution[] = CONTRIBUTIONS): string[] {
+  const d = contribDeliverable(c);
+  if (!d) return [];
+  const path = [d.gate, d.name];
+  const parent = c.parentId ? all.find((x) => x.id === c.parentId) : undefined;
+  if (parent) path.push(parent.title);
+  return path;
+}
+
+/**
+ * Parents possibles : les contributions du niveau immédiatement supérieur,
+ * sur le même livrable. Un jalon n'a pas de parent ; une tâche peut se
+ * rattacher directement au livrable si aucun jalon n'y a encore été ouvert.
+ */
+export function parentOptions(
+  level: ContribLevel,
+  deliverableId: string,
+  all: Contribution[] = CONTRIBUTIONS,
+): Contribution[] {
+  const above = parentLevel(level);
+  if (!above) return [];
+  return all.filter((c) => c.level === above && c.deliverableId === deliverableId);
+}
+
+/** Nombre de contributions ouvertes sur un livrable, tous niveaux confondus. */
+export function contribCountFor(
+  deliverableId: string,
+  all: Contribution[] = CONTRIBUTIONS,
+): number {
+  return all.filter((c) => c.deliverableId === deliverableId).length;
 }
 
 /** Contexte de la porte APQP courante, affiché en bandeau. */

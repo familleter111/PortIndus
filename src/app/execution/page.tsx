@@ -65,11 +65,15 @@ import {
 } from "@/components/execution/contribution-modals";
 import {
   CONTRIBUTIONS,
+  CONTRIB_LEVELS,
   CONTRIB_SPLIT,
+  LEVEL_COLOR,
   EXECUTION_GATE,
   RECENT_ACTIVITY,
   STATUS_DATE,
   canSubmit,
+  contribPath,
+  deliverableById,
   displayStatus,
   type ContribPriority,
   type Contribution,
@@ -159,6 +163,7 @@ export default function ExecutionPage() {
   const [statusFilter, setStatusFilter] = React.useState("Statut");
   const [priorityFilter, setPriorityFilter] = React.useState("Priorité");
   const [ownerFilter, setOwnerFilter] = React.useState("Responsable");
+  const [levelFilter, setLevelFilter] = React.useState("Niveau");
 
   const current = rows.find((c) => c.id === openId) ?? null;
 
@@ -312,7 +317,9 @@ export default function ExecutionPage() {
       {
         id,
         title: n.title,
-        reference: n.reference,
+        level: n.level,
+        deliverableId: n.deliverableId,
+        parentId: n.parentId,
         owner: n.owner,
         ownerInitials: owner?.ownerInitials ?? getInitials(n.owner),
         priority: n.priority,
@@ -359,28 +366,21 @@ export default function ExecutionPage() {
     [rows],
   );
 
-  /** Les référentiels APQP proposés viennent de ceux déjà utilisés sur le projet. */
-  const references = React.useMemo(
-    () => Array.from(new Set(rows.map((c) => c.reference))).sort(),
-    [rows],
-  );
-
   const filtered = React.useMemo(
     () =>
       rows.filter((c) => {
         const q = query.trim().toLowerCase();
-        if (
-          q &&
-          !`${c.title} ${c.id} ${c.reference} ${c.owner}`.toLowerCase().includes(q)
-        ) {
-          return false;
-        }
+        // La recherche porte aussi sur le rattachement : taper « PFMEA » ou
+        // « G3 » doit ramener tout ce qui sécurise ce livrable.
+        const hay = `${c.title} ${c.id} ${c.level} ${c.owner} ${contribPath(c, rows).join(" ")}`;
+        if (q && !hay.toLowerCase().includes(q)) return false;
         if (statusFilter !== "Statut" && displayStatus(c) !== statusFilter) return false;
         if (priorityFilter !== "Priorité" && c.priority !== priorityFilter) return false;
         if (ownerFilter !== "Responsable" && c.owner !== ownerFilter) return false;
+        if (levelFilter !== "Niveau" && c.level !== levelFilter) return false;
         return true;
       }),
-    [rows, query, statusFilter, priorityFilter, ownerFilter],
+    [rows, query, statusFilter, priorityFilter, ownerFilter, levelFilter],
   );
 
   /** Compteurs des tuiles : ils portent sur tout le projet, pas sur le filtre. */
@@ -463,6 +463,8 @@ export default function ExecutionPage() {
             onPriorityFilter={setPriorityFilter}
             ownerFilter={ownerFilter}
             onOwnerFilter={setOwnerFilter}
+            levelFilter={levelFilter}
+            onLevelFilter={setLevelFilter}
             onOpen={openDetail}
             onCreate={() => setModal("create")}
           />
@@ -474,7 +476,7 @@ export default function ExecutionPage() {
       <CreateContributionModal
         open={modal === "create"}
         owners={owners}
-        references={references}
+        contributions={rows}
         onClose={() => setModal(null)}
         onCreate={create}
       />
@@ -584,6 +586,8 @@ function ListView({
   onPriorityFilter,
   ownerFilter,
   onOwnerFilter,
+  levelFilter,
+  onLevelFilter,
   onOpen,
   onCreate,
 }: {
@@ -600,6 +604,8 @@ function ListView({
   onPriorityFilter: (v: string) => void;
   ownerFilter: string;
   onOwnerFilter: (v: string) => void;
+  levelFilter: string;
+  onLevelFilter: (v: string) => void;
   onOpen: (id: string) => void;
   onCreate: () => void;
 }) {
@@ -616,10 +622,20 @@ function ListView({
             <Input
               value={query}
               onChange={(e) => onQuery(e.target.value)}
-              placeholder="Rechercher par intitulé, référence, responsable…"
+              placeholder="Rechercher par intitulé, gate, livrable, responsable…"
               className="pl-8"
             />
           </span>
+          <Select
+            value={levelFilter}
+            onChange={(e) => onLevelFilter(e.target.value)}
+            className="w-[118px] shrink-0"
+            aria-label="Filtrer par niveau d'action"
+          >
+            {["Niveau", ...CONTRIB_LEVELS].map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </Select>
           <Select
             value={statusFilter}
             onChange={(e) => onStatusFilter(e.target.value)}
@@ -703,7 +719,8 @@ function ListView({
               <tr className="text-left text-muted-foreground">
                 {[
                   "Intitulé",
-                  "Référence APQP / livrable",
+                  "Niveau",
+                  "Gate / livrable rattaché",
                   "Responsable",
                   "Priorité",
                   "Statut",
@@ -733,12 +750,38 @@ function ListView({
                     className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-[#FCFCFD]"
                   >
                     <td className="py-2 pl-3 pr-2">
-                      <span className="flex items-center gap-2">
+                      {/* Le décalage matérialise le niveau : jalon à gauche,
+                          sous-tâche en retrait — l'arborescence se lit à l'œil. */}
+                      <span
+                        className="flex items-center gap-2"
+                        style={{ paddingLeft: CONTRIB_LEVELS.indexOf(c.level) * 12 }}
+                      >
                         <span className="shrink-0">{STATUS_ICON[st]}</span>
                         <span className="font-medium text-foreground">{c.title}</span>
                       </span>
                     </td>
-                    <td className="px-2 py-2 text-muted-foreground">{c.reference}</td>
+                    <td className="px-2 py-2">
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: `${LEVEL_COLOR[c.level]}14`,
+                          color: LEVEL_COLOR[c.level],
+                        }}
+                      >
+                        {c.level}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-muted-foreground">
+                      {(() => {
+                        const d = deliverableById(c.deliverableId);
+                        if (!d) return "—";
+                        return (
+                          <>
+                            <span className="font-semibold text-foreground">{d.gate}</span> · {d.name}
+                          </>
+                        );
+                      })()}
+                    </td>
                     <td className="px-2 py-2 text-foreground">{c.owner}</td>
                     <td className="px-2 py-2">
                       <Chip tone={PRIORITY_TONE[c.priority]}>{c.priority}</Chip>
@@ -1117,8 +1160,21 @@ function DetailView({
               <Field label="Intitulé de la contribution">
                 <Input defaultValue={c.title} key={`${c.id}-title`} />
               </Field>
-              <Field label="Référence APQP / livrable lié">
-                <Input defaultValue={c.reference} key={`${c.id}-ref`} />
+              {/* Le rattachement se lit, il ne se ressaisit pas : il a été fixé
+                  à la création et porte la gate que la contribution sécurise. */}
+              <Field label="Rattachement">
+                <p className="flex min-h-[34px] items-center gap-1 rounded-lg border border-border bg-muted px-2.5 text-[12px] text-muted-foreground">
+                  <span
+                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                    style={{
+                      backgroundColor: `${LEVEL_COLOR[c.level]}14`,
+                      color: LEVEL_COLOR[c.level],
+                    }}
+                  >
+                    {c.level}
+                  </span>
+                  <span className="min-w-0 truncate">{contribPath(c).join(" › ")}</span>
+                </p>
               </Field>
 
               <Field label="Responsable de réalisation">

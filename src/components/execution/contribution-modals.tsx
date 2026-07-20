@@ -3,8 +3,10 @@
 import * as React from "react";
 import {
   CheckCircle2,
+  ChevronRight,
   ClipboardCheck,
   FileText,
+  Layers,
   Plus,
   RefreshCw,
   Search,
@@ -26,6 +28,18 @@ import {
   Textarea,
 } from "@/components/ui/primitives";
 import {
+  APQP_GATES,
+  CONTRIB_LEVELS,
+  GATE_DELIVERABLES,
+  LEVEL_COLOR,
+  contribCountFor,
+  deliverableById,
+  deliverableStatus,
+  deliverablesForGate,
+  gateLabel,
+  parentLevel,
+  parentOptions,
+  type ContribLevel,
   type ContribPriority,
   type Contribution,
   type StepStatus,
@@ -226,7 +240,9 @@ function DecisionSummary({ c, className }: { c: Contribution; className?: string
 
 export interface NewContribution {
   title: string;
-  reference: string;
+  level: ContribLevel;
+  deliverableId: string;
+  parentId: string | null;
   owner: string;
   priority: ContribPriority;
   /** Format jj/mm/aaaa, comme le reste des dates du modèle. */
@@ -240,45 +256,101 @@ function isoToFr(iso: string): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
 }
 
+/** Ce que chaque niveau engage — le texte qui aide à choisir. */
+const LEVEL_HINT: Record<ContribLevel, { detail: string; example: string }> = {
+  Jalon: {
+    detail: "Le livrable dans son ensemble, tel qu'il sera validé en revue de gate.",
+    example: "Ex. Mettre à jour AMDEC procédé",
+  },
+  Tâche: {
+    detail: "Un lot du livrable, confié à une personne avec une échéance.",
+    example: "Ex. Recoter les criticités S / O / D",
+  },
+  "Sous-tâche": {
+    detail: "Une action élémentaire à l'intérieur d'une tâche.",
+    example: "Ex. Clore action étanchéité process",
+  },
+};
+
+const DELIVERABLE_DOT: Record<string, string> = {
+  Approuvé: "#2E7D32",
+  "En revue": "#3976D3",
+  "En cours": "#E58A00",
+  Planifié: "#98A2B3",
+  "En retard": "#D92D20",
+};
+
 export function CreateContributionModal({
   open,
   owners,
-  references,
+  contributions,
   onClose,
   onCreate,
 }: {
   open: boolean;
   owners: string[];
-  references: string[];
+  /** Sert à proposer les parents possibles du niveau choisi. */
+  contributions: Contribution[];
   onClose: () => void;
   onCreate: (c: NewContribution) => void;
 }) {
-  const [form, setForm] = React.useState<NewContribution>({
-    title: "",
-    reference: references[0] ?? "",
-    owner: owners[0] ?? "",
-    priority: "Moyenne",
-    dueDate: "",
-    expected: "",
-  });
+  // Par défaut, le premier livrable encore ouvert : c'est là que les
+  // contributions se créent, pas sur une gate déjà franchie.
+  const firstOpen =
+    GATE_DELIVERABLES.find((d) => d.status !== "Approuvé") ?? GATE_DELIVERABLES[0];
 
-  React.useEffect(() => {
-    if (!open) return;
-    setForm({
+  const DEFAULTS: NewContribution = React.useMemo(
+    () => ({
       title: "",
-      reference: references[0] ?? "",
+      level: "Tâche",
+      deliverableId: firstOpen?.id ?? "",
+      parentId: null,
       owner: owners[0] ?? "",
       priority: "Moyenne",
       dueDate: "",
       expected: "",
-    });
-  }, [open, owners, references]);
+    }),
+    [owners, firstOpen],
+  );
+
+  const [form, setForm] = React.useState<NewContribution>(DEFAULTS);
+
+  React.useEffect(() => {
+    if (open) setForm(DEFAULTS);
+  }, [open, DEFAULTS]);
 
   const set = <K extends keyof NewContribution>(key: K, value: NewContribution[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  // L'intitulé et la date cible font la contribution : sans eux, rien à suivre.
-  const missing = !form.title.trim() || !form.dueDate;
+  const deliverable = deliverableById(form.deliverableId);
+  const above = parentLevel(form.level);
+  const parents = React.useMemo(
+    () => parentOptions(form.level, form.deliverableId, contributions),
+    [form.level, form.deliverableId, contributions],
+  );
+
+  /**
+   * Changer de niveau ou de livrable invalide le parent retenu : le remettre à
+   * zéro évite de rattacher une sous-tâche à une tâche d'un autre livrable.
+   */
+  const pickLevel = (level: ContribLevel) =>
+    setForm((f) => ({ ...f, level, parentId: null }));
+  const pickDeliverable = (deliverableId: string) =>
+    setForm((f) => ({ ...f, deliverableId, parentId: null }));
+
+  // Le rattachement fait partie de ce qui est obligatoire : une sous-tâche sans
+  // tâche parente n'a pas de place dans l'arborescence.
+  const needsParent = form.level === "Sous-tâche";
+  const missing =
+    !form.title.trim() || !form.dueDate || !form.deliverableId || (needsParent && !form.parentId);
+
+  const missingLabel = !form.title.trim()
+    ? "L'intitulé est obligatoire"
+    : !form.dueDate
+      ? "La date cible est obligatoire"
+      : needsParent && !form.parentId
+        ? "Une sous-tâche doit être rattachée à une tâche"
+        : undefined;
 
   return (
     <Modal
@@ -294,26 +366,168 @@ export function CreateContributionModal({
       }
     >
       <div className="space-y-3">
+        {/* ------------------------------------------------ Niveau d'action */}
+        <div>
+          <p className="mb-1 text-[12px] font-semibold text-foreground">
+            Niveau d&apos;action
+            <span className="ml-0.5 text-[#D92D20]">*</span>
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {CONTRIB_LEVELS.map((lvl, i) => {
+              const on = form.level === lvl;
+              const tone = LEVEL_COLOR[lvl];
+              return (
+                <button
+                  key={lvl}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => pickLevel(lvl)}
+                  className="rounded-xl border p-2.5 text-left transition-colors"
+                  style={{
+                    borderColor: on ? tone : "#EAECF0",
+                    backgroundColor: on ? `${tone}0F` : "#FFFFFF",
+                  }}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className="flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                      style={{ backgroundColor: on ? tone : "#98A2B3" }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span
+                      className="text-[12px] font-bold"
+                      style={{ color: on ? tone : "#101828" }}
+                    >
+                      {lvl}
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-[10px] leading-snug text-muted-foreground">
+                    {LEVEL_HINT[lvl].detail}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+          {/* -------------------------------------- Livrable rattaché à une gate */}
+          <Field label="Livrable rattaché (par gate)" required className="col-span-2">
+            <Select
+              value={form.deliverableId}
+              onChange={(e) => pickDeliverable(e.target.value)}
+            >
+              {APQP_GATES.map((g) => {
+                const items = deliverablesForGate(g.id);
+                if (items.length === 0) return null;
+                return (
+                  <optgroup key={g.id} label={`${g.id} — ${g.label}`}>
+                    {items.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} · {deliverableStatus(d)} · {d.progress} %
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </Select>
+          </Field>
+
+          {/* Ce que le livrable choisi engage réellement — évite de choisir à l'aveugle. */}
+          {deliverable ? (
+            <Card className="col-span-2 bg-muted p-2.5">
+              <div className="flex items-center gap-2">
+                <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                  <span className="font-semibold text-foreground">
+                    {gateLabel(deliverable.gate)}
+                  </span>
+                  <ChevronRight className="mx-0.5 inline h-3 w-3 align-[-1px]" />
+                  <span className="font-semibold text-foreground">{deliverable.name}</span>
+                </p>
+                <span className="flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{
+                      backgroundColor: DELIVERABLE_DOT[deliverableStatus(deliverable)] ?? "#98A2B3",
+                    }}
+                  />
+                  {deliverableStatus(deliverable)}
+                </span>
+              </div>
+              <div className="mt-1 grid grid-cols-4 gap-2 text-[10px] text-muted-foreground">
+                <span>
+                  Criticité{" "}
+                  <span className="font-semibold text-foreground">{deliverable.criticality}</span>
+                </span>
+                <span>
+                  Responsable{" "}
+                  <span className="font-semibold text-foreground">{deliverable.owner}</span>
+                </span>
+                <span>
+                  Échéance{" "}
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {deliverable.dueDate}
+                  </span>
+                </span>
+                <span>
+                  Contributions{" "}
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {contribCountFor(deliverable.id, contributions)}
+                  </span>
+                </span>
+              </div>
+            </Card>
+          ) : null}
+
+          {/* ------------------------------------------------ Rattachement parent */}
+          {above ? (
+            <Field
+              label={`Rattacher à ${above === "Jalon" ? "un jalon" : "une tâche"} de ce livrable`}
+              required={needsParent}
+              className="col-span-2"
+            >
+              <Select
+                value={form.parentId ?? ""}
+                disabled={parents.length === 0}
+                onChange={(e) => set("parentId", e.target.value || null)}
+              >
+                {needsParent ? (
+                  <option value="">
+                    {parents.length === 0
+                      ? "Aucune tâche ouverte sur ce livrable"
+                      : "Choisir la tâche parente…"}
+                  </option>
+                ) : (
+                  <option value="">Le livrable dans son ensemble</option>
+                )}
+                {parents.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.id} · {p.title} — {p.progress} %
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                {needsParent
+                  ? parents.length === 0
+                    ? "Créez d'abord une tâche sur ce livrable : une sous-tâche s'y rattache toujours."
+                    : "Une sous-tâche est une action élémentaire à l'intérieur d'une tâche."
+                  : "Sans jalon parent, la tâche se rattache directement au livrable."}
+              </p>
+            </Field>
+          ) : null}
+
           <Field label="Intitulé de la contribution" required className="col-span-2">
             <Input
               autoFocus
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
-              placeholder="Ex. Clore action étanchéité process"
+              placeholder={LEVEL_HINT[form.level].example}
             />
           </Field>
 
-          <Field label="Référence APQP / livrable lié">
-            <Select
-              value={form.reference}
-              onChange={(e) => set("reference", e.target.value)}
-            >
-              {references.map((r) => (
-                <option key={r}>{r}</option>
-              ))}
-            </Select>
-          </Field>
           <Field label="Responsable de réalisation">
             <Select value={form.owner} onChange={(e) => set("owner", e.target.value)}>
               {owners.map((o) => (
@@ -321,7 +535,6 @@ export function CreateContributionModal({
               ))}
             </Select>
           </Field>
-
           <Field label="Niveau de priorité">
             <Select
               value={form.priority}
@@ -332,16 +545,15 @@ export function CreateContributionModal({
               ))}
             </Select>
           </Field>
+
           <Field label="Date cible" required>
             <DateInput onChange={(e) => set("dueDate", isoToFr(e.target.value))} />
           </Field>
-
-          <Field label="Résultat attendu" className="col-span-2">
-            <Textarea
-              rows={2}
+          <Field label="Résultat attendu">
+            <Input
               value={form.expected}
               onChange={(e) => set("expected", e.target.value)}
-              placeholder="Ce qui doit être obtenu une fois la contribution terminée…"
+              placeholder="Ce qui doit être obtenu…"
             />
           </Field>
         </div>
@@ -367,12 +579,32 @@ export function CreateContributionModal({
           </ol>
         </Card>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
+        <div className="flex items-center gap-2 border-t border-border pt-3">
+          {/* Le chemin complet, tel qu'il sera enregistré. */}
+          <p className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">
+            {deliverable ? (
+              <>
+                {deliverable.gate}
+                <ChevronRight className="mx-0.5 inline h-2.5 w-2.5 align-[-1px]" />
+                {deliverable.name}
+                {form.parentId ? (
+                  <>
+                    <ChevronRight className="mx-0.5 inline h-2.5 w-2.5 align-[-1px]" />
+                    {parents.find((p) => p.id === form.parentId)?.title}
+                  </>
+                ) : null}
+                <ChevronRight className="mx-0.5 inline h-2.5 w-2.5 align-[-1px]" />
+                <span className="font-semibold" style={{ color: LEVEL_COLOR[form.level] }}>
+                  {form.title.trim() || `Nouvelle ${form.level.toLowerCase()}`}
+                </span>
+              </>
+            ) : null}
+          </p>
           <Button onClick={onClose}>Annuler</Button>
           <Button
             variant="primary"
             disabled={missing}
-            title={missing ? "L'intitulé et la date cible sont obligatoires" : undefined}
+            title={missingLabel}
             onClick={() => onCreate({ ...form, title: form.title.trim() })}
           >
             <Plus className="h-4 w-4" />

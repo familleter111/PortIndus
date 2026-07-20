@@ -49,6 +49,7 @@ import {
   ACTION_SPLIT,
   APQP_GATES,
   DELIVERABLES,
+  deliverableStatus,
   S_CURVE,
   capacityFor,
   capacityTotalFor,
@@ -76,10 +77,12 @@ const HEALTH_META = {
   red: { label: "Rouge", color: "#D92D20" },
 } as const;
 
-const DELIVERABLE_TONE: Record<string, "green" | "amber" | "blue"> = {
+const DELIVERABLE_TONE: Record<string, "green" | "amber" | "blue" | "red" | "slate"> = {
   Approuvé: "green",
   "En cours": "amber",
   "En revue": "blue",
+  Planifié: "slate",
+  "En retard": "red",
 };
 
 const TABS = ["Synthèse", "Planning", "Exécution", "Livrables"];
@@ -441,11 +444,13 @@ export default function ProjetPage() {
                 </tr>
               </thead>
               <tbody>
-                {DELIVERABLES.map((d) => (
+                {DELIVERABLES.map((d) => {
+                  const st = deliverableStatus(d);
+                  return (
                   <tr key={d.name}>
                     <td className="px-3.5 py-[7px] font-medium text-foreground">{d.name}</td>
                     <td className="py-[7px]">
-                      <Chip tone={DELIVERABLE_TONE[d.status]}>{d.status}</Chip>
+                      <Chip tone={DELIVERABLE_TONE[st]}>{st}</Chip>
                     </td>
                     <td className="px-3.5 py-[7px]">
                       <span className="flex items-center gap-1.5">
@@ -460,7 +465,8 @@ export default function ProjetPage() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </Panel>
