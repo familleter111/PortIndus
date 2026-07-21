@@ -184,23 +184,26 @@ export function AppShell({
               type="button"
               onDoubleClick={isHome ? () => setScenarioOpen(true) : undefined}
               title={
-                isHome ? "Double-cliquez pour ouvrir le scénario de démonstration" : "APQP"
+                isHome ? "Double-cliquez pour ouvrir le scénario de démonstration" : "Portfolio"
               }
               aria-label={
-                isHome ? "APQP — double-cliquez pour ouvrir le scénario" : "APQP"
+                isHome ? "Portfolio — double-cliquez pour ouvrir le scénario" : "Portfolio"
               }
               className={cn("min-w-0 flex-1 text-left", isHome ? "cursor-pointer" : "cursor-default")}
             >
-              {/* Logo large (2024 × 777) : à 136 px il occupe 52 px de haut et
-                  tient dans la barre de 60 px. Next sert une version
-                  redimensionnée, la source n'est pas envoyée telle quelle. */}
+              {/*
+               * Le fichier d'origine était blanc à 70 % : recadré sur la
+               * marque, le logo remplit sa boîte au lieu d'y flotter.
+               * Largeur : la barre fait 200 px, moins 24 de padding, 30 pour
+               * le bouton de repli et 8 d'écart — il reste 138 px.
+               */}
               <Image
-                src="/apqp.png"
-                alt="APQP"
-                width={2024}
-                height={777}
+                src="/portfolio.png"
+                alt="Portfolio"
+                width={800}
+                height={188}
                 priority
-                className="h-auto w-[136px] select-none object-contain"
+                className="h-auto w-[132px] select-none object-contain"
               />
             </button>
           ) : null}
