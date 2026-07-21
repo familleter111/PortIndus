@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { KEYS, usePersistentState } from "@/lib/persist";
 import { PageTitle } from "@/components/shared/page-parts";
 import { WizardSteps } from "@/components/shared/wizard-steps";
 import {
@@ -239,7 +240,11 @@ export default function Etape3Page() {
   const [sop, setSop] = React.useState(frToIso(NEW_PROJECT.sop));
   const [calendar, setCalendar] = React.useState(NEW_PROJECT.calendar);
 
-  const [resources, setResources] = React.useState<ResRow[]>(RESOURCE_SEED);
+  const [resources, setResources] = usePersistentState<ResRow[]>(
+    KEYS.resources,
+    RESOURCE_SEED,
+    (v) => Array.isArray(v),
+  );
 
   /*
    * L'aperçu par fonction était saisi à côté des affectations nominatives :

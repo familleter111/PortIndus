@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { KEYS, usePersistentState } from "@/lib/persist";
 import { PageTitle } from "@/components/shared/page-parts";
 import { WizardSteps } from "@/components/shared/wizard-steps";
 import {
@@ -57,8 +58,16 @@ export default function Etape2Page() {
   const router = useRouter();
 
   // Les deux équipes sont modifiables : l'ajout se fait par modale.
-  const [core, setCore] = React.useState<TeamMember[]>(CORE_TEAM);
-  const [extended, setExtended] = React.useState<ExtendedMember[]>(EXTENDED_TEAM);
+  const [core, setCore] = usePersistentState<TeamMember[]>(
+    KEYS.coreTeam,
+    CORE_TEAM,
+    (v) => Array.isArray(v),
+  );
+  const [extended, setExtended] = usePersistentState<ExtendedMember[]>(
+    KEYS.extendedTeam,
+    EXTENDED_TEAM,
+    (v) => Array.isArray(v),
+  );
   const [modal, setModal] = React.useState<"core" | "extended" | null>(null);
 
   // Les indicateurs se déduisent des listes : aucune valeur saisie en dur.

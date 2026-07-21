@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { KEYS, usePersistentState } from "@/lib/persist";
 import { getInitials } from "@/lib/utils";
 import { InfoStrip, PageTitle } from "@/components/shared/page-parts";
 import {
@@ -152,7 +153,12 @@ const nextId = (prefix: string) => `${prefix}-${(seq += 1)}`;
 type ModalKey = "create" | "update" | "review" | "validate" | "refuse" | null;
 
 export default function ExecutionPage() {
-  const [rows, setRows] = React.useState<Contribution[]>(CONTRIBUTIONS);
+  // Creations, mises a jour et validations restent apres rechargement.
+  const [rows, setRows] = usePersistentState<Contribution[]>(
+    KEYS.contributions,
+    CONTRIBUTIONS,
+    (v) => Array.isArray(v),
+  );
   /** `null` = vue liste ; sinon identifiant de la contribution ouverte. */
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [modal, setModal] = React.useState<ModalKey>(null);

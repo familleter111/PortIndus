@@ -8,9 +8,10 @@ import { NEW_PROJECT } from "@/lib/data";
  * Brouillon de la description projet.
  *
  * L'application n'a pas de serveur : « enregistrer » veut dire conserver la
- * saisie le temps de la session, pour que l'étape 4 prévisualise bien ce que
- * l'utilisateur a écrit et non la proposition d'origine. Même mécanique que le
- * verrou d'accès, qui utilise déjà `sessionStorage`.
+ * saisie dans le navigateur, pour que l'étape 4 prévisualise bien ce que
+ * l'utilisateur a écrit et non la proposition d'origine. `localStorage` et
+ * non `sessionStorage` : le texte doit survivre à la fermeture de l'onglet,
+ * comme le reste des saisies de la démonstration.
  */
 
 export type AiIcon = "package" | "target" | "alert" | "calendar";
@@ -27,7 +28,7 @@ export interface AiDescription {
   sections: AiSection[];
 }
 
-const KEY = "portindus:new-project:description";
+const KEY = "portindus.v1.projet.description";
 
 /** La proposition telle que la génération l'a produite — référence immuable. */
 export const GENERATED: AiDescription = NEW_PROJECT.aiDescription;
@@ -63,7 +64,7 @@ export function isEdited(d: AiDescription): boolean {
  */
 function read(): AiDescription | null {
   try {
-    const raw = window.sessionStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (
@@ -96,7 +97,7 @@ export function useProjectDescription() {
   const save = React.useCallback((next: AiDescription) => {
     setDraft(next);
     try {
-      window.sessionStorage.setItem(KEY, JSON.stringify(next));
+      window.localStorage.setItem(KEY, JSON.stringify(next));
     } catch {
       /* navigation privée, quota : la saisie reste valable à l'écran */
     }
@@ -106,7 +107,7 @@ export function useProjectDescription() {
   const reset = React.useCallback(() => {
     setDraft(GENERATED);
     try {
-      window.sessionStorage.removeItem(KEY);
+      window.localStorage.removeItem(KEY);
     } catch {
       /* sans importance : l'état à l'écran fait foi */
     }

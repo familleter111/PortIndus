@@ -17,6 +17,7 @@ import {
   LineChart,
   PanelLeftClose,
   PanelLeftOpen,
+  RotateCcw,
   Settings,
   Briefcase,
   Users,
@@ -26,6 +27,7 @@ import { useScenario } from "@/components/layout/scenario-context";
 import { Markdown } from "@/components/shared/markdown";
 import { Modal } from "@/components/ui/primitives";
 import { STATUS_DATE } from "@/lib/data";
+import { clearSavedWork, hasSavedWork } from "@/lib/persist";
 import { cn } from "@/lib/utils";
 
 /**
@@ -157,6 +159,15 @@ export function AppShell({
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
   const [scenarioOpen, setScenarioOpen] = React.useState(false);
+  const [confirmReset, setConfirmReset] = React.useState(false);
+  /* localStorage est absent au rendu serveur : on releve l'etat apres montage. */
+  const [saved, setSaved] = React.useState(false);
+  React.useEffect(() => {
+    if (scenarioOpen) {
+      setSaved(hasSavedWork());
+      setConfirmReset(false);
+    }
+  }, [scenarioOpen]);
   const scenario = useScenario();
   /** The portfolio is the entry point: nothing to go back to. */
   const isHome = pathname === "/portefeuille";
@@ -342,6 +353,53 @@ export function AppShell({
         }
       >
         <Markdown source={scenario} />
+
+        {/*
+         * Les saisies de la démonstration sont conservées d'une session à
+         * l'autre. Sans porte de sortie, un état devenu bancal se rechargerait
+         * indéfiniment : ce bouton remet tous les écrans dans leur état initial.
+         */}
+        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+          <p className="min-w-0 flex-1 text-[11px] text-muted-foreground">
+            {saved
+              ? "Vos ajouts et modifications sont enregistrés dans ce navigateur."
+              : "Aucune modification enregistrée : les écrans affichent les données d'origine."}
+          </p>
+          {confirmReset ? (
+            <>
+              <span className="text-[11px] text-muted-foreground">Tout effacer ?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  clearSavedWork();
+                  // Un rechargement complet : chaque écran repart de ses données.
+                  window.location.reload();
+                }}
+                className="rounded-lg bg-[#D92D20] px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-[#B42318]"
+              >
+                Effacer et recharger
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmReset(false)}
+                className="rounded-lg px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
+              >
+                Non
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={!saved}
+              onClick={() => setConfirmReset(true)}
+              title={saved ? undefined : "Rien à réinitialiser"}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-default disabled:opacity-40"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Réinitialiser la démonstration
+            </button>
+          )}
+        </div>
       </Modal>
     </div>
   );

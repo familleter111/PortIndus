@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { KEYS, usePersistentState } from "@/lib/persist";
 import { FilterSelect } from "@/components/planning/filter-select";
 import { Button, Card, Chip, Modal, type ChipTone } from "@/components/ui/primitives";
 import {
@@ -91,13 +92,26 @@ type ModalKey =
 export default function PlanningPage() {
   const router = useRouter();
 
-  const [rows, setRows] = React.useState<PlanRow[]>(PLAN_ROWS);
+  // Les saisies du planning survivent au rechargement.
+  const [rows, setRows] = usePersistentState<PlanRow[]>(
+    KEYS.planRows,
+    PLAN_ROWS,
+    (v) => Array.isArray(v),
+  );
   const [selected, setSelected] = React.useState<string | null>(null);
   const [panelOpen, setPanelOpen] = React.useState(false);
   const [modal, setModal] = React.useState<ModalKey>(null);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
-  const [visibleCols, setVisibleCols] = React.useState<string[]>(DEFAULT_VISIBLE);
-  const [collapsed, setCollapsed] = React.useState<string[]>([]);
+  const [visibleCols, setVisibleCols] = usePersistentState<string[]>(
+    KEYS.planColumns,
+    DEFAULT_VISIBLE,
+    (v) => Array.isArray(v) && v.length > 0,
+  );
+  const [collapsed, setCollapsed] = usePersistentState<string[]>(
+    KEYS.planCollapsed,
+    [],
+    (v) => Array.isArray(v),
+  );
   const [scale, setScale] = React.useState<Scale>("week");
   const [zoom, setZoom] = React.useState(1);
   const [showBaseline, setShowBaseline] = React.useState(true);
