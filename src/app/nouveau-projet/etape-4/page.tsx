@@ -19,6 +19,7 @@ import {
   Gauge,
   ListChecks,
   Package,
+  Pencil,
   Target,
   UserRound,
   Users,
@@ -41,6 +42,7 @@ import {
   NEW_PROJECT,
   NEW_PROJECT_FUNCTIONS,
 } from "@/lib/data";
+import { useProjectDescription } from "@/lib/project-draft";
 import { formatNumber } from "@/lib/utils";
 
 /** Grille du Gantt : douze mois depuis le kickoff. */
@@ -58,6 +60,10 @@ const LEVEL_COLOR = { surcharge: "#D92D20", limite: "#E58A00", sain: "#2E7D32" }
 
 export default function Etape4Page() {
   const router = useRouter();
+
+  // La description peut avoir été retouchée à l'étape 1 : la prévisualisation
+  // doit montrer le texte retenu, pas la proposition d'origine.
+  const { draft: description, edited: descriptionEdited } = useProjectDescription();
 
   // Phases repliées. Toutes ouvertes au départ : on veut voir le plan entier.
   const [collapsed, setCollapsed] = React.useState<string[]>([]);
@@ -140,9 +146,17 @@ export default function Etape4Page() {
             </dl>
 
             <div className="mt-2.5 border-t border-border pt-2.5">
-              <p className="text-[11px] font-medium text-muted-foreground">Description</p>
+              <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                Description
+                {descriptionEdited ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#F0DFC4] bg-[#FEF6E7] px-1.5 py-0.5 text-[9px] font-semibold text-[#B45F09]">
+                    <Pencil className="h-2.5 w-2.5" />
+                    Modifiée à l&apos;étape 1
+                  </span>
+                ) : null}
+              </p>
               <p className="mt-0.5 text-[11px] leading-snug text-foreground">
-                {NEW_PROJECT.aiDescription.summary}
+                {description.summary}
               </p>
             </div>
           </Panel>
