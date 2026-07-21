@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FileDown, Info, Printer } from "lucide-react";
+import { Download, FileDown, Info } from "lucide-react";
 
 import { ReportDocument, pageCount } from "@/components/reports/report-document";
 import { Toggle } from "@/components/reports/report-parts";
@@ -45,10 +45,10 @@ export function defaultSettings(name: string, version: string): ExportSettings {
 /**
  * Export PDF.
  *
- * Il n'y a pas de serveur pour fabriquer le fichier : l'export passe par la
- * boîte d'impression du navigateur, où « Enregistrer au format PDF » produit un
- * vrai document. C'est dit dans la modale — un bouton qui prétendrait
- * télécharger un fichier inexistant serait pire qu'inutile en démonstration.
+ * Il n'y a pas de serveur pour fabriquer le fichier : chaque page du rapport
+ * est capturée dans le navigateur (`exportReportToPdf`, via html2canvas et
+ * jsPDF) puis assemblée en un vrai fichier .pdf, téléchargé directement —
+ * jamais la boîte d'impression du navigateur.
  */
 export function ExportModal({
   open,
@@ -158,7 +158,8 @@ export function ExportModal({
             <Toggle
               checked={settings.dateStamp}
               onChange={(v) => set({ dateStamp: v })}
-              label="Date et heure d'export"
+              label="Horodater le nom du fichier"
+              hint="Ajoute la date d'export à la fin du nom de fichier"
             />
           </div>
 
@@ -172,9 +173,9 @@ export function ExportModal({
 
           <p className="flex items-start gap-1.5 rounded-lg border border-border bg-muted/60 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
             <Info className="mt-px h-3.5 w-3.5 shrink-0" />
-            L&apos;export ouvre la boîte d&apos;impression du navigateur : choisissez
-            « Enregistrer au format PDF » comme destination. Aucun envoi n&apos;est effectué —
-            les destinataires sont enregistrés avec le rapport.
+            Le fichier PDF est fabriqué dans votre navigateur puis téléchargé directement, sans
+            passer par l&apos;impression. Aucun envoi n&apos;est effectué — les destinataires sont
+            enregistrés avec le rapport.
           </p>
 
           <div className="flex items-center gap-2 pt-0.5">
@@ -187,8 +188,8 @@ export function ExportModal({
               onClick={() => onExport(settings)}
               disabled={!settings.fileName.trim()}
             >
-              <Printer className="h-4 w-4" />
-              Exporter le PDF
+              <Download className="h-4 w-4" />
+              Télécharger le PDF
             </Button>
           </div>
         </div>

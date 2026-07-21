@@ -12,6 +12,7 @@ import {
   Eye,
   FileDown,
   History,
+  Loader2,
   Lock,
   Minus,
   Pencil,
@@ -31,10 +32,12 @@ import { Button, Card, Chip, Panel, Select } from "@/components/ui/primitives";
 import {
   CURRENT_USER,
   REPORT_STATUS_TONE,
+  STATUS_DATE,
   formatDuration,
   reportScopeLabel,
   reportTemplate,
 } from "@/lib/data";
+import { exportReportToPdf } from "@/lib/export-pdf";
 import {
   SUGGESTIONS,
   buildReport,
@@ -65,8 +68,12 @@ export default function ApercuRapportPage() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [confirmRegen, setConfirmRegen] = React.useState(false);
   const [flash, setFlash] = React.useState<string | null>(null);
-  const [printSettings, setPrintSettings] = React.useState<ExportSettings | null>(null);
-  /* Le portail d'impression n'existe qu'après montage : `document` est absent au rendu serveur. */
+  /* Réglages du dernier export demandé — pilotent le filigrane du support hors écran. */
+  const [exportSettings, setExportSettings] = React.useState<ExportSettings | null>(null);
+  /* Nom de fichier en attente de capture : non nul pendant la fabrication du PDF. */
+  const [pendingCapture, setPendingCapture] = React.useState<string | null>(null);
+  const [exporting, setExporting] = React.useState(false);
+  /* Le support d'export n'existe qu'après montage : `document` est absent au rendu serveur. */
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
@@ -152,7 +159,10 @@ export default function ApercuRapportPage() {
     note(`Copie créée sous l'identifiant ${copy.id}.`);
   };
 
-  /** Export : le rapport est versionné, puis remis au navigateur pour le PDF. */
+  /**
+   * Export : le rapport est versionné, puis un vrai fichier PDF est fabriqué
+   * dans le navigateur et téléchargé — jamais la boîte d'impression.
+   */
   const exportPdf = (settings: ExportSettings) => {
     const at = stamp();
     const version = bumpVersion(draft.version, true);
@@ -168,12 +178,42 @@ export default function ApercuRapportPage() {
     };
     setDraft(next);
     setLibrary((all) => upsertReport(all, docFromDraft(next)));
-    setPrintSettings(settings);
     setExportOpen(false);
-    note(`${settings.fileName}.pdf — ${version} enregistrée dans la bibliothèque.`);
-    // Le portail d'impression doit être peint avant l'ouverture de la boîte.
-    window.setTimeout(() => window.print(), 120);
+    setExporting(true);
+    // Repeint le support hors écran avec le filigrane choisi avant de le capturer.
+    setExportSettings(settings);
+    const suffix = settings.dateStamp ? `_${STATUS_DATE.split("/").reverse().join("")}` : "";
+    setPendingCapture(`${settings.fileName}${suffix}`);
   };
+
+  /*
+   * Capture effective : se déclenche une fois `pendingCapture` posé, donc après
+   * que le support hors écran a été repeint avec les réglages d'export choisis.
+   */
+  React.useEffect(() => {
+    if (!pendingCapture) return;
+    let cancelled = false;
+    (async () => {
+      // Deux tours d'animation : laisse le navigateur peindre le filigrane
+      // avant de rastériser — sans cela, la première capture peut le manquer.
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      try {
+        await exportReportToPdf({ fileName: pendingCapture });
+        if (!cancelled) note(`${pendingCapture}.pdf téléchargé.`);
+      } catch {
+        if (!cancelled) note("Échec de l'export PDF — réessayez.");
+      } finally {
+        if (!cancelled) {
+          setExporting(false);
+          setPendingCapture(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCapture]);
 
   const regenerate = () => {
     setDraft((d) => ({ ...d, overrides: {}, generated: false }));
@@ -355,7 +395,14 @@ export default function ApercuRapportPage() {
           </div>
         </Card>
 
-        {flash ? (
+        {exporting ? (
+          <Card className="flex shrink-0 items-center gap-2 border-[#BFEFD5] bg-[#F1FCF6] px-3 py-1.5">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#0E7C52]" />
+            <p className="text-[12px] text-foreground">
+              Génération du PDF en cours — {totalPages} page{totalPages > 1 ? "s" : ""} à assembler…
+            </p>
+          </Card>
+        ) : flash ? (
           <Card className="flex shrink-0 items-center gap-2 border-[#BFEFD5] bg-[#F1FCF6] px-3 py-1.5">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-[#2E7D32]" />
             <p className="text-[12px] text-foreground">{flash}</p>
@@ -467,7 +514,7 @@ export default function ApercuRapportPage() {
                   <Save className="h-4 w-4" />
                   Enregistrer
                 </Button>
-                <Button variant="primary" onClick={() => setExportOpen(true)}>
+                <Button variant="primary" onClick={() => setExportOpen(true)} disabled={exporting}>
                   <FileDown className="h-4 w-4" />
                   Exporter
                 </Button>
@@ -484,7 +531,7 @@ export default function ApercuRapportPage() {
                   <Pencil className="h-4 w-4" />
                   Éditer le texte
                 </Button>
-                <Button variant="primary" onClick={() => setExportOpen(true)}>
+                <Button variant="primary" onClick={() => setExportOpen(true)} disabled={exporting}>
                   <FileDown className="h-4 w-4" />
                   Exporter en PDF
                 </Button>
@@ -594,15 +641,16 @@ export default function ApercuRapportPage() {
       />
 
       {/*
-        Support d'impression : masqué à l'écran, seul visible dans le PDF.
-        Voir la règle @media print dans globals.css.
+        Support d'export : rendu hors écran (voir #pdf-export-root dans
+        globals.css), une page par `data-report-page`. `exportReportToPdf`
+        capture chacune et assemble le fichier téléchargé — jamais visible
+        à l'utilisateur.
       */}
       {mounted
         ? createPortal(
-            <div id="print-root">
-              <style>{`@page { size: A4 ${printSettings?.orientation ?? "landscape"}; margin: 10mm; }`}</style>
+            <div id="pdf-export-root">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <div key={p} style={{ breakAfter: p < totalPages ? "page" : "auto" }}>
+                <div key={p} data-report-page={p}>
                   <ReportDocument
                     report={report}
                     params={params}
@@ -611,7 +659,7 @@ export default function ApercuRapportPage() {
                     page={p}
                     zoom={1}
                     bare
-                    watermark={printSettings?.watermark}
+                    watermark={exportSettings?.watermark}
                   />
                 </div>
               ))}

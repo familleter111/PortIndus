@@ -5,7 +5,20 @@
 /*  Front-end uniquement : aucune API, aucune base de données.                 */
 /* -------------------------------------------------------------------------- */
 
-export const STATUS_DATE = "15/12/2026";
+/**
+ * Date de statut de la démonstration — toujours celle du jour, recalculée à
+ * chaque chargement de page : elle avance donc d'elle-même, sans action de
+ * l'utilisateur (aujourd'hui 21/07/2026, demain 22/07/2026, etc.). Elle pilote
+ * tout ce qui se lit comme « en retard » dans l'application.
+ */
+function todayFR(): string {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+export const STATUS_DATE = todayFR();
 
 /* ------------------------------- Portefeuille ----------------------------- */
 

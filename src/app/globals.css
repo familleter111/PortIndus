@@ -119,34 +119,17 @@
   }
 
   /*
-   * Export PDF. Faute de serveur, le fichier est produit par la boîte
-   * d'impression du navigateur : à l'impression on masque l'application et on
-   * ne laisse que le document, monté à part dans #print-root. Sans cela, la
-   * barre latérale et les panneaux se retrouveraient dans le PDF.
+   * Export PDF. Faute de serveur, le fichier est fabriqué dans le navigateur :
+   * chaque page du rapport est capturée puis assemblée en PDF et téléchargée
+   * directement — jamais la boîte d'impression. Le support de capture est monté
+   * hors écran (jamais `display:none`, sinon rien à capturer n'a de taille) et
+   * ignore les clics : l'utilisateur ne le voit ni ne peut interagir avec lui.
    */
-  #print-root {
-    display: none;
-  }
-
-  @media print {
-    #app-frame {
-      display: none !important;
-    }
-    #print-root {
-      display: block !important;
-    }
-    /* Les fonds et les couleurs de statut portent l'information : les laisser
-       tomber à l'impression viderait le rapport de sa lecture. */
-    body,
-    #print-root * {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    /* Une section coupée en deux entre deux pages devient illisible. */
-    #print-root section,
-    #print-root table {
-      break-inside: avoid;
-    }
+  #pdf-export-root {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    pointer-events: none;
   }
 
   .scrollbar-thin {
