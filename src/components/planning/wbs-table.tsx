@@ -93,7 +93,34 @@ const NAME_COLUMN: Column = {
 export const COLUMNS: Column[] = [
   NAME_COLUMN,
   { key: "wbs", label: "WBS", width: 52, render: (r) => <span className="tabular-nums text-muted-foreground">{r.wbs}</span> },
-  { key: "id", label: "ID", width: 46, render: (r) => <span className="font-semibold text-foreground">{r.id}</span> },
+  {
+    /*
+     * Repère de la ligne. Une gate n'a pas d'identifiant de tâche à montrer :
+     * elle porte sa pastille à la place, ce qui évite une colonne « Gate »
+     * séparée presque toujours vide. Les lignes de regroupement restent en
+     * gris, elles ne se pointent pas dans un échange.
+     */
+    key: "id", label: "ID", width: 52,
+    render: (r) =>
+      r.gate ? (
+        <span
+          className={`inline-flex h-[19px] items-center justify-center rounded-full border px-1.5 text-[9px] font-bold ${
+            r.gateTone === "amber"
+              ? "border-[#E58A00] bg-[#FEF6E7] text-[#B45F09]"
+              : "border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]"
+          }`}
+          title={`Jalon ${r.gate}`}
+        >
+          {r.gate}
+        </span>
+      ) : (
+        <span
+          className={`tabular-nums ${r.summary ? "text-muted-foreground" : "font-semibold text-foreground"}`}
+        >
+          {r.id}
+        </span>
+      ),
+  },
   {
     key: "owner", label: "Responsable", width: 114,
     render: (r) =>
@@ -143,30 +170,13 @@ export const COLUMNS: Column[] = [
   { key: "status", label: "Statut", width: 96, align: "center", render: (r) => <Chip tone={STATUS_TONE[r.status]}>{r.status}</Chip> },
   { key: "delay", label: "Dérive", width: 52, align: "center", render: (r) => <span className="font-medium tabular-nums text-[#D92D20]">{r.delay} j</span> },
   { key: "load", label: "Charge", width: 56, align: "center", render: (r) => <span className="tabular-nums text-foreground">{r.load} h</span> },
-  {
-    key: "gate", label: "Gate", width: 46, align: "center",
-    render: (r) =>
-      r.gate ? (
-        <span
-          className={`inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border text-[9px] font-bold ${
-            r.gateTone === "amber"
-              ? "border-[#E58A00] bg-[#FEF6E7] text-[#0E7C52]"
-              : "border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]"
-          }`}
-        >
-          {r.gate}
-        </span>
-      ) : (
-        <span className="text-border">—</span>
-      ),
-  },
   { key: "bStart", label: "Baseline début", width: 74, align: "center", render: (r) => <span className="tabular-nums text-muted-foreground">{fr(r.bStart)}</span> },
   { key: "bEnd", label: "Baseline fin", width: 74, align: "center", render: (r) => <span className="tabular-nums text-muted-foreground">{fr(r.bEnd)}</span> },
   { key: "predecessors", label: "Précurseurs", width: 68, align: "center", render: (r) => <span className="whitespace-nowrap text-muted-foreground">{r.predecessors}</span> },
   { key: "critical", label: "Critique", width: 52, align: "center", render: (r) => (r.critical ? <Dot color="#D92D20" /> : <span className="text-border">—</span>) },
 ];
 
-export const DEFAULT_VISIBLE = ["name", "owner", "schedule", "duration", "progress", "status"];
+export const DEFAULT_VISIBLE = ["id", "name", "owner", "schedule", "duration", "progress", "status"];
 
 /** Largeur exacte du tableau : le Gantt récupère tout le reste. */
 export function tableWidth(visible: string[]): number {

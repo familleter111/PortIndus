@@ -11,9 +11,7 @@ import {
   Download,
   FileText,
   Flag,
-  Gauge,
   Layers,
-  LineChart,
   Pencil,
   Plus,
   Route,
@@ -632,12 +630,12 @@ export default function PlanningPage() {
         </div>
 
         {/* ----------------------------------------------------- Bandeau bas */}
-        <div className="mt-2 grid h-[136px] shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
+        <div className="mt-2 h-[92px] shrink-0">
           <Card className="flex min-h-0 flex-col overflow-hidden px-3.5 py-2">
             <p className="shrink-0 text-[13px] font-semibold text-foreground">
               Risques &amp; conflits détectés ({PLAN_RISKS.length})
             </p>
-            <ul className="mt-1 min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+            <ul className="mt-1 grid min-h-0 flex-1 grid-cols-2 gap-x-3 overflow-y-auto scrollbar-thin">
               {PLAN_RISKS.map((r) => {
                 const isConflict = r.id === "conflit";
                 return (
@@ -666,29 +664,6 @@ export default function PlanningPage() {
             </ul>
           </Card>
 
-          <Card className="flex min-h-0 flex-col overflow-hidden px-3.5 py-2">
-            <p className="shrink-0 text-[13px] font-semibold text-foreground">Actions rapides</p>
-            <div className="mt-1 grid min-h-0 flex-1 grid-cols-6 gap-1.5">
-              {[
-                { icon: <Diamond className="h-4 w-4" />, label: "Ajouter un jalon", run: () => setModal("milestone") },
-                { icon: <Plus className="h-4 w-4" />, label: "Ajouter une tâche", run: () => setModal("task") },
-                { icon: <Layers className="h-4 w-4" />, label: "Ajouter une sous-tâche", run: () => setModal("subtask") },
-                { icon: <CalendarRange className="h-4 w-4" />, label: "Replanifier", run: () => setModal("simulation") },
-                { icon: <Gauge className="h-4 w-4" />, label: "Simulation rapide", run: () => setModal("simulation") },
-                { icon: <LineChart className="h-4 w-4" />, label: "Piloter l'exécution", run: () => router.push("/execution") },
-              ].map((a) => (
-                <button
-                  key={a.label}
-                  type="button"
-                  onClick={a.run}
-                  className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border px-1 text-center transition-colors hover:border-[#16A46B] hover:bg-[#F1FCF6]"
-                >
-                  <span className="text-[#0E7C52]">{a.icon}</span>
-                  <span className="text-[10px] leading-tight text-foreground">{a.label}</span>
-                </button>
-              ))}
-            </div>
-          </Card>
         </div>
       </div>
 
