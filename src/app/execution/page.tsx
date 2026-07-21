@@ -66,7 +66,7 @@ import {
 import {
   CONTRIBUTIONS,
   CONTRIB_LEVELS,
-  CONTRIB_SPLIT,
+  contribSplit,
   LEVEL_COLOR,
   EXECUTION_GATE,
   RECENT_ACTIVITY,
@@ -616,6 +616,9 @@ function ListView({
   onCreate: () => void;
 }) {
   const [hintOpen, setHintOpen] = React.useState(true);
+  // La répartition décrit les lignes réellement affichées : elle suit les
+  // filtres du tableau et bouge quand une contribution change de statut.
+  const split = React.useMemo(() => contribSplit(rows), [rows]);
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] gap-2.5">
@@ -886,12 +889,15 @@ function ListView({
         <Panel title="Vue rapide" className="shrink-0">
           <p className="mb-2 text-[11px] font-medium text-muted-foreground">
             Répartition par statut
+            <span className="ml-1 tabular-nums text-foreground">
+              — {rows.length} contribution{rows.length > 1 ? "s" : ""}
+            </span>
           </p>
           <div className="flex items-center gap-3">
-            <Donut data={CONTRIB_SPLIT} />
+            <Donut data={split} />
             <ul className="min-w-0 flex-1 space-y-1">
-              {CONTRIB_SPLIT.map((s) => {
-                const totalSplit = CONTRIB_SPLIT.reduce((n, x) => n + x.value, 0);
+              {split.map((s) => {
+                const totalSplit = rows.length || 1;
                 return (
                   <li key={s.label} className="flex items-center gap-1.5 text-[11px]">
                     <span

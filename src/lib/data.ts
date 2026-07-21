@@ -11,6 +11,39 @@ export const STATUS_DATE = "15/12/2026";
 
 export type Health = "green" | "orange" | "red";
 
+/* ------------------------- Référentiel des fonctions ---------------------- */
+
+/**
+ * Vocabulaire unique des fonctions. Cinq listes coexistaient — « Méthodes »
+ * ici, « Process » là, « Engineering » ailleurs — et une même personne pouvait
+ * relever de deux fonctions selon l'écran. Tout part désormais d'ici : capacité
+ * portefeuille, charge par service, équipe projet et annuaire.
+ */
+export const FUNCTIONS = [
+  "Direction projet",
+  "R&D Produit",
+  "Méthodes / Process",
+  "Qualité",
+  "Industrialisation",
+  "Production",
+  "Achats",
+  "Logistique",
+] as const;
+
+export type FunctionName = (typeof FUNCTIONS)[number];
+
+/** Couleur d'une fonction — la même dans les avatars, les barres et les puces. */
+export const FUNCTION_COLOR: Record<FunctionName, string> = {
+  "Direction projet": "#0E7C52",
+  "R&D Produit": "#E58A00",
+  "Méthodes / Process": "#3976D3",
+  Qualité: "#D92D20",
+  Industrialisation: "#2E7D32",
+  Production: "#2C9C9C",
+  Achats: "#7C3AED",
+  Logistique: "#0891B2",
+};
+
 export interface Project {
   id: string;
   name: string;
@@ -129,6 +162,8 @@ function weightedAvg(pick: (p: Project) => number): number {
 }
 
 const fr1 = (n: number) => n.toFixed(1).replace(".", ",");
+/** 19468 → « 19 468 h » (espace fine insécable, convention française). */
+const formatHours = (n: number) => `${n.toLocaleString("fr-FR").replace(/ | /g, " ")} h`;
 
 export const PORTFOLIO_KPIS = [
   { label: "Avancement portefeuille réel", value: `${fr1(weightedAvg((p) => p.actual))} %`, tone: "ink" as const, icon: "trend" },
@@ -150,7 +185,7 @@ export interface CapacityRow {
 
 export const CAPACITY_ROWS: CapacityRow[] = [
   { fn: "Qualité", load: 2700, capacity: 2232, ratio: 121, color: "#D92D20" },
-  { fn: "Méthodes", load: 1950, capacity: 2000, ratio: 98, color: "#E58A00" },
+  { fn: "Méthodes / Process", load: 1950, capacity: 2000, ratio: 98, color: "#E58A00" },
   { fn: "Achats", load: 1280, capacity: 1600, ratio: 80, color: "#2E7D32" },
   { fn: "Production", load: 2100, capacity: 2500, ratio: 84, color: "#2E7D32" },
   { fn: "Industrialisation", load: 1620, capacity: 2000, ratio: 81, color: "#2E7D32" },
@@ -232,24 +267,6 @@ export function kpisFor(p: Project) {
     { label: "Santé projet", value: { green: "Vert", orange: "Orange", red: "Rouge" }[p.health], tone: { green: "green", orange: "amber", red: "red" }[p.health] as "green" | "amber" | "red", icon: "shield" },
   ];
 }
-
-export const PROJECT_GATE = {
-  next: "G3 — Process Freeze",
-  baseline: "05/02/2027",
-  forecast: "19/02/2027",
-  drift: "+14 jours",
-  readiness: 58,
-};
-
-export const PROJECT_KPIS = [
-  { label: "Avancement réel", value: "41 %", note: "vs plan 50,6 %", tone: "ink" as const, icon: "gauge" },
-  { label: "Avancement planifié", value: "50,6 %", tone: "ink" as const, icon: "target" },
-  { label: "SPI simplifié", value: "0,81", note: "< 1,00", tone: "red" as const, icon: "trend" },
-  { label: "Actions en retard", value: "1", tone: "red" as const, icon: "clock" },
-  { label: "Livrables approuvés", value: "33 %", tone: "green" as const, icon: "check" },
-  { label: "Actions critiques ouvertes", value: "3", tone: "red" as const, icon: "alert" },
-  { label: "Santé projet", value: "Orange", tone: "amber" as const, icon: "shield" },
-];
 
 /** Courbe en S — avancement planifié vs réel (le réel s'arrête à la date de statut). */
 export const S_CURVE = [
@@ -347,7 +364,7 @@ export function issuesFor(p: Project): ProjectIssue[] {
  */
 const FUNCTION_SHARE: { fn: string; load: number; capacity: number }[] = [
   { fn: "Qualité", load: 0.276, capacity: 0.224 },
-  { fn: "Méthodes", load: 0.214, capacity: 0.202 },
+  { fn: "Méthodes / Process", load: 0.214, capacity: 0.202 },
   { fn: "Achats", load: 0.138, capacity: 0.162 },
   { fn: "Production", load: 0.231, capacity: 0.251 },
   { fn: "Industrialisation", load: 0.141, capacity: 0.161 },
@@ -379,55 +396,11 @@ export function capacityTotalFor(rows: CapacityRow[]) {
   return { load, capacity, ratio: Math.round((load / capacity) * 100) };
 }
 
-export const PROJECT_ISSUES: ProjectIssue[] = [
-  {
-    id: "gate",
-    title: "Dérive sur G3 — Process Freeze",
-    detail: "Forecast 19/02/2027 soit +14 jours vs baseline.",
-    level: "Critique",
-    risk: "Impact sur la date PPAP au-delà de +15 jours de dérive.",
-    decision: "Confirmer la date forecast du Process Freeze et son impact PPAP.",
-  },
-  {
-    id: "capacity",
-    title: "Charge Qualité supérieure à la capacité",
-    detail: "Charge actuelle 112 % vs capacité disponible.",
-    level: "Majeure",
-    risk: "Surcharge persistante sur les quatre prochaines semaines.",
-    decision: "Arbitrer la surcharge de la fonction Qualité.",
-  },
-  {
-    id: "overdue",
-    title: "1 action en retard",
-    detail: "PFMEA process — action critique dépassée.",
-    level: "Majeure",
-    risk: "Plan de rattrapage requis pour tenir la gate.",
-    decision: "Valider le plan de rattrapage PFMEA.",
-    due: "18/12/2026",
-  },
-];
-
 /**
  * Répartition de la charge du projet entre les fonctions. La somme des charges
  * vaut `PROJECT.workload` : le total affiché ne peut pas contredire la fiche
  * projet ni la ligne du portefeuille.
  */
-export const PROJECT_CAPACITY: CapacityRow[] = [
-  { fn: "Qualité", load: 620, capacity: 554, ratio: 112, color: "#D92D20" },
-  { fn: "Méthodes", load: 480, capacity: 500, ratio: 96, color: "#E58A00" },
-  { fn: "Achats", load: 310, capacity: 400, ratio: 78, color: "#2E7D32" },
-  { fn: "Production", load: 520, capacity: 620, ratio: 84, color: "#2E7D32" },
-  { fn: "Industrialisation", load: 318, capacity: 400, ratio: 80, color: "#2E7D32" },
-];
-
-export const PROJECT_CAPACITY_TOTAL = {
-  load: PROJECT_CAPACITY.reduce((n, r) => n + r.load, 0),
-  capacity: PROJECT_CAPACITY.reduce((n, r) => n + r.capacity, 0),
-  get ratio() {
-    return Math.round((this.load / this.capacity) * 100);
-  },
-};
-
 export const APQP_GATES = [
   { id: "G0", label: "Plan & Définir le programme" },
   { id: "G1", label: "Planification produit" },
@@ -1117,16 +1090,26 @@ export const EXECUTION_GATE = {
 };
 
 /**
- * Le périmètre du projet dépasse les contributions listées ici : la répartition
- * porte sur les 31 contributions du projet, dont ce tableau montre un extrait.
+ * Répartition par statut. Elle annonçait 31 contributions quand le tableau
+ * voisin en listait 9, et ne bougeait pas quand on en validait une. Elle se
+ * compte désormais sur les contributions réellement affichées, ce qui la fait
+ * suivre les actions de l'utilisateur.
  */
-export const CONTRIB_SPLIT = [
-  { label: "Créées", value: 5, color: "#98A2B3" },
-  { label: "En cours", value: 7, color: "#3976D3" },
-  { label: "À valider", value: 4, color: "#E58A00" },
-  { label: "Validées", value: 12, color: "#2E7D32" },
-  { label: "En retard", value: 3, color: "#D92D20" },
-];
+export function contribSplit(all: Contribution[] = CONTRIBUTIONS) {
+  return (
+    [
+      { label: "Créées", status: "Créée", color: "#98A2B3" },
+      { label: "En cours", status: "En cours", color: "#3976D3" },
+      { label: "À valider", status: "À valider", color: "#E58A00" },
+      { label: "Validées", status: "Validée", color: "#2E7D32" },
+      { label: "En retard", status: "En retard", color: "#D92D20" },
+    ] as const
+  ).map((s) => ({
+    label: s.label,
+    color: s.color,
+    value: all.filter((c) => displayStatus(c) === s.status).length,
+  }));
+}
 
 export const RECENT_ACTIVITY = [
   {
@@ -1236,22 +1219,16 @@ export interface TeamMember {
   fn: string;
   /** Rôle tenu dans la démarche APQP, distinct de la fonction métier. */
   role: string;
-  /** Part du temps affectée au projet, en pourcentage. */
-  allocation: number;
+  /** Heures affectées au projet sur sa durée — la charge, pas un taux. */
+  hours: number;
   site: string;
   color: string;
 }
 
+/** Heures d'un équivalent temps plein sur la durée du projet (12 mois). */
+export const HOURS_PER_ETP = 1610;
+
 /** Équipe pluridisciplinaire permanente, présente à toutes les gates. */
-export const CORE_TEAM: TeamMember[] = [
-  { name: "Leïla Mansour", initials: "LM", fn: "Direction projet", role: "Pilotage APQP", allocation: 60, site: "Sousse", color: "#0E7C52" },
-  { name: "Noura Trabelsi", initials: "NT", fn: "Qualité", role: "PFMEA & plan de contrôle", allocation: 45, site: "Sousse", color: "#D92D20" },
-  { name: "Youssef Jaziri", initials: "YJ", fn: "Méthodes / Process", role: "Flux process & outillage", allocation: 50, site: "Sousse", color: "#3976D3" },
-  { name: "Karim Belhadj", initials: "KB", fn: "Industrialisation", role: "Essais & capabilité", allocation: 35, site: "Sousse", color: "#2E7D32" },
-  { name: "Sonia Gharbi", initials: "SG", fn: "Achats", role: "Panel fournisseurs", allocation: 20, site: "Tunis", color: "#7C3AED" },
-  { name: "Mehdi Aloui", initials: "MA", fn: "Logistique", role: "Emballage & flux", allocation: 15, site: "Sousse", color: "#0891B2" },
-  { name: "Rim Bouazizi", initials: "RB", fn: "R&D Produit", role: "Interface design", allocation: 25, site: "Tunis", color: "#E58A00" },
-];
 
 export interface ExtendedMember {
   name: string;
@@ -1271,6 +1248,27 @@ export const EXTENDED_TEAM: ExtendedMember[] = [
   { name: "Anke Weber", initials: "AW", org: "Werkzeug GmbH", orgType: "Fournisseur", role: "Outillage d'injection", gates: "G3" },
   { name: "Hédi Chaabane", initials: "HC", org: "Usine Sousse", orgType: "Interne", role: "Responsable production", gates: "G4, G5" },
   { name: "Sami Toumi", initials: "ST", org: "Laboratoire métrologie", orgType: "Interne", role: "Moyens de mesure", gates: "G3, G4" },
+];
+
+/**
+ * Annuaire des contacts externes et internes mobilisables sur les gates. Il
+ * sert à choisir un contact plutôt qu'à retaper son nom, son organisation et
+ * son rôle — trois champs qui, saisis à la main, finissaient par diverger d'un
+ * projet à l'autre pour une même personne.
+ */
+export const EXTERNAL_CONTACTS: Omit<ExtendedMember, "gates">[] = [
+  { name: "Thomas Berger", initials: "TB", org: "OEM Alpha", orgType: "Client", role: "SQE client" },
+  { name: "Claire Fontaine", initials: "CF", org: "OEM Alpha", orgType: "Client", role: "Acheteur programme" },
+  { name: "Dieter Vogel", initials: "DV", org: "OEM Beta", orgType: "Client", role: "Ingénieur qualité fournisseur" },
+  { name: "Elena Ricci", initials: "ER", org: "OEM Gamma", orgType: "Client", role: "Chef de projet achats" },
+  { name: "Marco Rossi", initials: "MR", org: "Fonderie Lombardia", orgType: "Fournisseur", role: "Fourniture brut aluminium" },
+  { name: "Anke Weber", initials: "AW", org: "Werkzeug GmbH", orgType: "Fournisseur", role: "Outillage d'injection" },
+  { name: "Pierre Lambert", initials: "PL", org: "Traitements Sud", orgType: "Fournisseur", role: "Traitement de surface" },
+  { name: "Nadia Cherif", initials: "NC", org: "Plasturgie Kairouan", orgType: "Fournisseur", role: "Pièces plastiques techniques" },
+  { name: "Hédi Chaabane", initials: "HC", org: "Usine Sousse", orgType: "Interne", role: "Responsable production" },
+  { name: "Sami Toumi", initials: "ST", org: "Laboratoire métrologie", orgType: "Interne", role: "Moyens de mesure" },
+  { name: "Olfa Bouzid", initials: "OB", org: "Usine Tunis", orgType: "Interne", role: "Responsable maintenance" },
+  { name: "Walid Nasri", initials: "WN", org: "Direction HSE", orgType: "Interne", role: "Sécurité & environnement" },
 ];
 
 /**
@@ -1298,8 +1296,8 @@ export interface FunctionLoad {
 
 export const NEW_PROJECT_FUNCTIONS: FunctionLoad[] = [
   { fn: "Qualité", capacity: 2400, load: 2590, ratio: 108, color: "#D92D20" },
-  { fn: "Produit / Design", capacity: 2000, load: 1700, ratio: 85, color: "#3976D3" },
-  { fn: "Process", capacity: 2200, load: 2020, ratio: 92, color: "#E58A00" },
+  { fn: "R&D Produit", capacity: 2000, load: 1700, ratio: 85, color: "#3976D3" },
+  { fn: "Méthodes / Process", capacity: 2200, load: 2020, ratio: 92, color: "#E58A00" },
   { fn: "Production", capacity: 1800, load: 1620, ratio: 90, color: "#2E7D32" },
   { fn: "Achats", capacity: 1200, load: 1020, ratio: 85, color: "#8B5E9F" },
   { fn: "Logistique", capacity: 800, load: 580, ratio: 73, color: "#2C9C9C" },
@@ -1348,7 +1346,46 @@ export const PEOPLE_LOAD: PersonLoad[] = [
   { name: "Sonia Gharbi", initials: "SG", fn: "Achats", site: "Tunis", color: "#E58A00", rate: 60, projects: ["P-DEMO-004", "P-DEMO-010"], load: 690, available: 354 },
   { name: "Mehdi Aloui", initials: "MA", fn: "Logistique", site: "Sousse", color: "#16A46B", rate: 60, projects: ["P-DEMO-002"], load: 640, available: 404 },
   { name: "Rim Bouazizi", initials: "RB", fn: "R&D Produit", site: "Tunis", color: "#D97706", rate: 80, projects: ["P-DEMO-004", "P-DEMO-007"], load: 1240, available: 152 },
+  /*
+   * Ces six-là pilotent un service dans la vue charge mais ne figuraient dans
+   * aucun annuaire : impossible de les choisir dans une équipe, et leur
+   * fonction n'était déduite que du service qui les portait. Leur charge suit
+   * leur profil mensuel — un pilote qui dépasse la capacité a un solde négatif.
+   */
+  { name: "Hatem Ben Ali", initials: "HB", fn: "Direction projet", site: "Sousse", color: "#3976D3", rate: 100, projects: ["P-DEMO-002"], load: 1180, available: 430 },
+  { name: "Anis Gharbi", initials: "AG", fn: "R&D Produit", site: "Tunis", color: "#0891B2", rate: 100, projects: ["P-DEMO-002"], load: 1520, available: 90 },
+  { name: "Ines Chaabane", initials: "IC", fn: "Qualité", site: "Tunis", color: "#7C3AED", rate: 100, projects: ["P-DEMO-002", "P-DEMO-008"], load: 1560, available: 50 },
+  { name: "Meriem Khelifi", initials: "MK", fn: "Production", site: "Sousse", color: "#475467", rate: 100, projects: ["P-DEMO-001", "P-DEMO-002"], load: 1690, available: -80 },
+  { name: "Slim Toumi", initials: "ST", fn: "Production", site: "Sousse", color: "#E58A00", rate: 100, projects: ["P-DEMO-002", "P-DEMO-003"], load: 1745, available: -135 },
+  { name: "Dorra Ben Amor", initials: "DA", fn: "Production", site: "Bizerte", color: "#2E7D32", rate: 80, projects: ["P-DEMO-003"], load: 1210, available: 178 },
 ];
+
+/** L'annuaire fait foi pour la fonction, le site et la couleur d'une personne. */
+export function personByName(name: string): PersonLoad | undefined {
+  return PEOPLE_LOAD.find((p) => p.name === name);
+}
+
+/**
+ * Équipe projet. La fonction, le site, les initiales et la couleur ne sont pas
+ * recopiés ici : ils viennent de l'annuaire. Recopiés, ils divergeaient — une
+ * même personne apparaissait avec deux couleurs et parfois deux fonctions.
+ * Seuls le rôle APQP et les heures sont propres au projet.
+ */
+export const CORE_TEAM: TeamMember[] = (
+  [
+    { name: "Leïla Mansour", role: "Pilotage APQP", hours: 960 },
+    { name: "Noura Trabelsi", role: "PFMEA & plan de contrôle", hours: 720 },
+    { name: "Youssef Jaziri", role: "Flux process & outillage", hours: 800 },
+    { name: "Karim Belhadj", role: "Essais & capabilité", hours: 560 },
+    { name: "Sonia Gharbi", role: "Panel fournisseurs", hours: 320 },
+    { name: "Mehdi Aloui", role: "Emballage & flux", hours: 240 },
+    { name: "Rim Bouazizi", role: "Interface design", hours: 400 },
+  ] as const
+).map(({ name, role, hours }) => {
+  const p = personByName(name);
+  if (!p) throw new Error(`Membre absent de l'annuaire : ${name}`);
+  return { name, role, hours, initials: p.initials, fn: p.fn, site: p.site, color: p.color };
+});
 
 /**
  * Le ratio charge/capacité se calcule : capacité = charge + disponible. Écrire
@@ -1644,10 +1681,9 @@ export interface LoadService {
 
 const n = null;
 
-export const SERVICE_LOAD: LoadService[] = [
+const RAW_SERVICE_LOAD: { service: string; members: LoadPilot[] }[] = [
   {
-    service: "Programme", pilots: 7,
-    values: [42, 29, 31, 35, 55, 30, 32, 12, 34, n, 23, 26, 16, 7, n, 3, 9, 14, 1],
+    service: "Direction projet",
     members: [
       { name: "Leïla Mansour", initials: "LM", color: "#0E7C52", projects: 9,
         clients: ["OEM Alpha", "OEM Gamma"], health: "orange",
@@ -1659,8 +1695,7 @@ export const SERVICE_LOAD: LoadService[] = [
     ],
   },
   {
-    service: "Engineering", pilots: 4,
-    values: [161, 88, 74, 101, 47, 35, 54, 41, 7, n, n, n, n, n, n, n, n, n, n],
+    service: "R&D Produit",
     members: [
       { name: "Rim Bouazizi", initials: "RB", color: "#E58A00", projects: 6,
         clients: ["OEM Alpha", "OEM Gamma"], health: "red",
@@ -1672,8 +1707,7 @@ export const SERVICE_LOAD: LoadService[] = [
     ],
   },
   {
-    service: "Qualité", pilots: 5,
-    values: [144, 119, 143, 162, 138, 126, 106, 88, 50, 87, 96, 41, 20, 12, 19, 20, 30, 2, n],
+    service: "Qualité",
     members: [
       { name: "Noura Trabelsi", initials: "NT", color: "#D92D20", projects: 8,
         clients: ["OEM Alpha", "OEM Beta", "OEM Gamma"], health: "red",
@@ -1685,20 +1719,25 @@ export const SERVICE_LOAD: LoadService[] = [
     ],
   },
   {
-    service: "Industrialisation", pilots: 4,
-    values: [211, 178, 156, 181, 165, 132, 121, 64, 67, 52, 37, 24, n, n, n, n, n, n, n],
+    // Youssef Jaziri est passé sous sa vraie fonction : il était compté ici
+    // alors que l'annuaire et l'équipe projet le donnent en Méthodes / Process.
+    service: "Méthodes / Process",
     members: [
-      { name: "Karim Belhadj", initials: "KB", color: "#2E7D32", projects: 7,
-        clients: ["OEM Alpha", "OEM Gamma"], health: "red", phases: ["Process Design"],
-        values: [244, 201, 172, 205, 186, 148, 139, 71, 76, 58, 41, 27, n, n, n, n, n, n, n] },
       { name: "Youssef Jaziri", initials: "YJ", color: "#3976D3", projects: 6,
         clients: ["OEM Alpha"], health: "orange", phases: ["Process Design", "Validation"],
         values: [178, 155, 140, 157, 144, 116, 103, 57, 58, 46, 33, 21, n, n, n, n, n, n, n] },
     ],
   },
   {
-    service: "Production", pilots: 3,
-    values: [47, 55, 86, 46, 23, 79, 11, 32, 103, 13, 19, n, 25, 28, 12, n, n, n, n],
+    service: "Industrialisation",
+    members: [
+      { name: "Karim Belhadj", initials: "KB", color: "#2E7D32", projects: 7,
+        clients: ["OEM Alpha", "OEM Gamma"], health: "red", phases: ["Process Design"],
+        values: [244, 201, 172, 205, 186, 148, 139, 71, 76, 58, 41, 27, n, n, n, n, n, n, n] },
+    ],
+  },
+  {
+    service: "Production",
     members: [
       { name: "Meriem Khelifi", initials: "MK", color: "#475467", projects: 7,
         clients: ["OEM Alpha", "OEM Beta"], health: "orange", phases: ["Validation"],
@@ -1713,16 +1752,33 @@ export const SERVICE_LOAD: LoadService[] = [
     ],
   },
   {
-    service: "Achats", pilots: 3,
-    values: [n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n],
+    service: "Achats",
     members: [],
   },
   {
-    service: "Logistique", pilots: 2,
-    values: [n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n],
+    service: "Logistique",
     members: [],
   },
 ];
+
+/**
+ * La ligne d'un service est l'agrégat de ses pilotes, calculée et non saisie.
+ * Elle l'était : six services sur sept tombaient juste, Production divergeait
+ * sur quatorze mois — le total contredisait le détail qu'on obtenait en le
+ * dépliant. Le nombre de pilotes suit la même règle : il ne peut plus annoncer
+ * sept personnes et n'en montrer que deux.
+ */
+export const SERVICE_LOAD: LoadService[] = RAW_SERVICE_LOAD.map((s) => ({
+  service: s.service,
+  pilots: s.members.length,
+  members: s.members,
+  values: LOAD_MONTHS.map((_, i) => {
+    const vals = s.members
+      .map((m) => m.values[i])
+      .filter((v): v is number => v !== null);
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+  }),
+}));
 
 /**
  * Référentiels des filtres de la page charge. Le `dot` est la pastille de
@@ -1746,12 +1802,71 @@ export const LOAD_LEVELS: { value: string; label: string; short: string; dot: st
   { value: "ok", label: "Jamais au-delà de 95 %", short: "Sous capacité", dot: "#2E7D32" },
 ];
 
+/* --- Indicateurs de la charge, tous dérivés des mêmes tableaux ------------ */
+
+const LOAD_PILOTS = SERVICE_LOAD.flatMap((s) => s.members);
+/** Un pilote est en surcharge dès qu'un mois dépasse la capacité. */
+const PILOTS_OVER = LOAD_PILOTS.filter((m) =>
+  m.values.some((v) => v !== null && v > 110),
+).length;
+/** Nombre de couples pilote × mois au-dessus de la capacité. */
+const MONTHS_OVER = LOAD_PILOTS.reduce(
+  (n, m) => n + m.values.filter((v) => v !== null && v > 110).length,
+  0,
+);
+const PEAK_SERVICE = SERVICE_LOAD.reduce(
+  (best, s) => {
+    const peak = Math.max(...s.values.filter((v): v is number => v !== null), 0);
+    return peak > best.peak ? { peak, service: s.service } : best;
+  },
+  { peak: 0, service: "—" },
+);
+
+/**
+ * Ces cinq tuiles annonçaient 24 projets, 9 rouges et 55 705 h alors que le
+ * portefeuille en compte 10, dont 2 rouges, pour 19 468 h. Elles se calculent
+ * maintenant, comme celles du portefeuille : un chiffre ne peut plus dire
+ * autre chose d'une page à l'autre.
+ */
 export const LOAD_KPIS = [
-  { value: "24", label: "Projets au planning", note: "55 705 h de charge", icon: "layers" },
-  { value: "9", label: "Projets à risque", note: "santé Rouge", icon: "alert", chip: "Arbitrage requis", tone: "red" as const },
-  { value: "21", label: "Pilotes en surcharge", note: "75 mois-pilotes au-dessus de la capacité", icon: "users", chip: "Conflit", tone: "red" as const },
-  { value: "211 %", label: "Service le plus contraint", note: "Industrialisation", icon: "gauge", chip: "Surcharge", tone: "red" as const },
-  { value: "12", label: "Actions en retard", note: "sur le périmètre filtré", icon: "clock", chip: "Critique", tone: "red" as const },
+  {
+    value: String(PROJECTS.length),
+    label: "Projets au planning",
+    note: `${formatHours(PORTFOLIO_TOTALS.workload)} de charge`,
+    icon: "layers",
+  },
+  {
+    value: String(PORTFOLIO_TOTALS.red),
+    label: "Projets à risque",
+    note: "santé Rouge",
+    icon: "alert",
+    chip: "Arbitrage requis",
+    tone: "red" as const,
+  },
+  {
+    value: String(PILOTS_OVER),
+    label: "Pilotes en surcharge",
+    note: `${MONTHS_OVER} mois-pilotes au-dessus de la capacité`,
+    icon: "users",
+    chip: "Conflit",
+    tone: "red" as const,
+  },
+  {
+    value: `${PEAK_SERVICE.peak} %`,
+    label: "Service le plus contraint",
+    note: PEAK_SERVICE.service,
+    icon: "gauge",
+    chip: "Surcharge",
+    tone: "red" as const,
+  },
+  {
+    value: String(PORTFOLIO_TOTALS.overdue),
+    label: "Actions en retard",
+    note: "sur l'ensemble du portefeuille",
+    icon: "clock",
+    chip: "Critique",
+    tone: "red" as const,
+  },
 ];
 
 /* ------------------------------ Conflit charge ---------------------------- */

@@ -6,10 +6,12 @@ import {
   AlertTriangle,
   ArrowRight,
   Building2,
+  Check,
   ChevronLeft,
   Gauge,
   Globe2,
   Plus,
+  Search,
   ShieldCheck,
   UserPlus,
   Users,
@@ -35,10 +37,14 @@ import {
   APQP_ROLES,
   CORE_TEAM,
   EXTENDED_TEAM,
+  EXTERNAL_CONTACTS,
+  FUNCTION_COLOR,
+  HOURS_PER_ETP,
+  PEOPLE_LOAD,
   type ExtendedMember,
   type TeamMember,
 } from "@/lib/data";
-import { getInitials } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 
 const ORG_TONE: Record<string, ChipTone> = {
   Client: "blue",
@@ -55,7 +61,8 @@ export default function Etape2Page() {
   const [modal, setModal] = React.useState<"core" | "extended" | null>(null);
 
   // Les indicateurs se déduisent des listes : aucune valeur saisie en dur.
-  const totalEtp = core.reduce((s, m) => s + m.allocation, 0) / 100;
+  const totalHours = core.reduce((s, m) => s + m.hours, 0);
+  const totalEtp = totalHours / HOURS_PER_ETP;
   const orgs = new Set(extended.map((m) => m.org)).size;
   const covered = APQP_ROLES.filter((r) => r.holder).length;
   const missing = APQP_ROLES.filter((r) => !r.holder);
@@ -112,9 +119,16 @@ export default function Etape2Page() {
                     <td className="px-2 py-[7px] text-muted-foreground">{m.role}</td>
                     <td className="px-2 py-[7px]">
                       <span className="flex items-center gap-1.5">
-                        <ProgressBar value={m.allocation} color={m.color} className="w-14" />
-                        <span className="w-8 shrink-0 text-right font-semibold tabular-nums text-foreground">
-                          {m.allocation} %
+                        <ProgressBar
+                          value={(m.hours / HOURS_PER_ETP) * 100}
+                          color={m.color}
+                          className="w-14"
+                        />
+                        <span
+                          className="w-14 shrink-0 text-right font-semibold tabular-nums text-foreground"
+                          title={`${(m.hours / HOURS_PER_ETP).toFixed(2).replace(".", ",")} ETP`}
+                        >
+                          {formatNumber(m.hours)} h
                         </span>
                       </span>
                     </td>
@@ -276,6 +290,7 @@ export default function Etape2Page() {
 
       <AddCoreMemberModal
         open={modal === "core"}
+        taken={core.map((m) => m.name)}
         onClose={() => setModal(null)}
         onAdd={(m) => {
           setCore((prev) => [...prev, m]);
@@ -284,6 +299,7 @@ export default function Etape2Page() {
       />
       <AddExtendedMemberModal
         open={modal === "extended"}
+        taken={extended.map((m) => m.name)}
         onClose={() => setModal(null)}
         onAdd={(m) => {
           setExtended((prev) => [...prev, m]);
@@ -298,46 +314,182 @@ export default function Etape2Page() {
 /*  Ajout de membres                                                           */
 /* -------------------------------------------------------------------------- */
 
-/** Palette d'avatars — la couleur suit la fonction, pas le hasard. */
-const FUNCTION_COLOR: Record<string, string> = {
-  "Direction projet": "#0E7C52",
-  Qualité: "#D92D20",
-  "Méthodes / Process": "#3976D3",
-  Industrialisation: "#2E7D32",
-  Achats: "#7C3AED",
-  Logistique: "#0891B2",
-  "R&D Produit": "#E58A00",
+/** Heures proposées par défaut à l'ajout — un quart de temps plein. */
+const DEFAULT_HOURS = 400;
+
+/* -------------------------------------------------------------------------- */
+/*  Choix d'une personne dans l'annuaire                                       */
+/* -------------------------------------------------------------------------- */
+
+interface PickOption {
+  name: string;
+  initials: string;
+  color: string;
+  /** Fonction ou organisation, selon l'annuaire d'où vient la personne. */
+  detail: string;
+  /** Complément de droite : disponibilité, type d'organisation… */
+  hint?: string;
+  hintTone?: "green" | "amber" | "red" | "muted";
+  /** Déjà dans l'équipe : visible mais non sélectionnable. */
+  taken?: boolean;
+}
+
+const HINT_COLOR: Record<string, string> = {
+  green: "#0E7C52",
+  amber: "#B45F09",
+  red: "#B42318",
+  muted: "#667085",
 };
 
-const FUNCTIONS = Object.keys(FUNCTION_COLOR);
-const SITES = ["Sousse", "Tunis", "Bizerte"];
+/**
+ * Sélection d'une personne par recherche. Les noms étaient saisis à la main :
+ * une faute de frappe créait un homonyme, et la fonction, le site ou
+ * l'organisation devaient être ressaisis alors qu'ils sont connus.
+ */
+function PersonPicker({
+  options,
+  value,
+  onChange,
+  placeholder,
+  emptyLabel,
+}: {
+  options: PickOption[];
+  value: string | null;
+  onChange: (name: string | null) => void;
+  placeholder: string;
+  emptyLabel: string;
+}) {
+  const [query, setQuery] = React.useState("");
+  const q = query.trim().toLowerCase();
+  const shown = options.filter(
+    (o) => !q || o.name.toLowerCase().includes(q) || o.detail.toLowerCase().includes(q),
+  );
+
+  return (
+    <div className="rounded-lg border border-input bg-white">
+      <div className="relative border-b border-border">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          className="h-8 w-full rounded-t-lg bg-transparent pl-8 pr-7 text-[12px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Effacer la recherche"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-[#0E7C52]"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+      </div>
+
+      <ul className="max-h-[168px] overflow-y-auto scrollbar-thin">
+        {shown.map((o) => {
+          const on = o.name === value;
+          return (
+            <li key={o.name}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={on}
+                disabled={o.taken}
+                title={o.taken ? "Déjà dans l'équipe" : undefined}
+                onClick={() => onChange(on ? null : o.name)}
+                className={`flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors ${
+                  o.taken
+                    ? "cursor-not-allowed opacity-45"
+                    : on
+                      ? "bg-[#E8FBF1]"
+                      : "hover:bg-muted"
+                }`}
+              >
+                <span
+                  className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                  style={{ backgroundColor: o.color }}
+                >
+                  {o.initials}
+                </span>
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span
+                    className={`block truncate text-[12px] ${on ? "font-semibold text-[#0E7C52]" : "font-medium text-foreground"}`}
+                  >
+                    {o.name}
+                  </span>
+                  <span className="block truncate text-[10px] text-muted-foreground">
+                    {o.detail}
+                  </span>
+                </span>
+                {o.taken ? (
+                  <span className="shrink-0 text-[10px] text-muted-foreground">déjà membre</span>
+                ) : o.hint ? (
+                  <span
+                    className="shrink-0 text-[10px] font-medium tabular-nums"
+                    style={{ color: HINT_COLOR[o.hintTone ?? "muted"] }}
+                  >
+                    {o.hint}
+                  </span>
+                ) : null}
+                {on ? <Check className="h-3.5 w-3.5 shrink-0 text-[#0E7C52]" /> : null}
+              </button>
+            </li>
+          );
+        })}
+
+        {shown.length === 0 ? (
+          <li className="px-3 py-4 text-center text-[11px] text-muted-foreground">{emptyLabel}</li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
 
 function AddCoreMemberModal({
   open,
+  taken,
   onClose,
   onAdd,
 }: {
   open: boolean;
+  /** Noms déjà dans la core team — proposés mais non sélectionnables. */
+  taken: string[];
   onClose: () => void;
   onAdd: (m: TeamMember) => void;
 }) {
-  const [name, setName] = React.useState("");
-  const [fn, setFn] = React.useState(FUNCTIONS[1]);
+  const [name, setName] = React.useState<string | null>(null);
   const [role, setRole] = React.useState("");
-  const [allocation, setAllocation] = React.useState(30);
-  const [site, setSite] = React.useState(SITES[0]);
+  const [hours, setHours] = React.useState(DEFAULT_HOURS);
 
   React.useEffect(() => {
     if (!open) return;
-    setName("");
-    setFn(FUNCTIONS[1]);
+    setName(null);
     setRole("");
-    setAllocation(30);
-    setSite(SITES[0]);
+    setHours(DEFAULT_HOURS);
   }, [open]);
 
-  // Le nom fait le membre ; le reste a un défaut raisonnable.
-  const missing = !name.trim();
+  const person = name ? PEOPLE_LOAD.find((p) => p.name === name) : undefined;
+
+  /*
+   * L'annuaire porte la disponibilité de chacun : dépasser ce solde n'est pas
+   * interdit — on peut décider de replanifier — mais doit se voir au moment du
+   * choix, pas à l'étape suivante.
+   */
+  const over = person ? hours - person.available : 0;
+
+  const options: PickOption[] = PEOPLE_LOAD.map((p) => ({
+    name: p.name,
+    initials: p.initials,
+    color: p.color,
+    detail: `${p.fn} · ${p.site}`,
+    hint: `${formatNumber(p.available)} h dispo.`,
+    hintTone: p.available < 0 ? "red" : p.available < 200 ? "amber" : "green",
+    taken: taken.includes(p.name),
+  }));
 
   return (
     <Modal
@@ -353,79 +505,99 @@ function AddCoreMemberModal({
       }
     >
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-          <Field label="Nom du membre" required className="col-span-2">
-            <Input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex. Amine Chakroun"
-            />
-          </Field>
-
-          <Field label="Fonction">
-            <Select value={fn} onChange={(e) => setFn(e.target.value)}>
-              {FUNCTIONS.map((f) => (
-                <option key={f}>{f}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Site">
-            <Select value={site} onChange={(e) => setSite(e.target.value)}>
-              {SITES.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </Select>
-          </Field>
-
-          <Field label="Rôle APQP" className="col-span-2">
-            <Input
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              placeholder="Ex. Plan de surveillance"
-            />
-          </Field>
+        <div>
+          <p className="mb-1 text-[12px] font-medium text-muted-foreground">
+            Membre<span className="ml-0.5 text-[#D92D20]">*</span>
+            <span className="ml-1 text-[10px]">
+              — sa fonction, son site et sa couleur viennent de l&apos;annuaire
+            </span>
+          </p>
+          <PersonPicker
+            options={options}
+            value={name}
+            onChange={setName}
+            placeholder="Rechercher une personne par nom ou fonction…"
+            emptyLabel="Aucune personne ne correspond à cette recherche."
+          />
         </div>
+
+        {person ? (
+          <div className="flex items-center gap-2 rounded-lg bg-muted px-2.5 py-1.5 text-[11px]">
+            <span className="text-muted-foreground">Fonction</span>
+            <span className="font-semibold text-foreground">{person.fn}</span>
+            <span className="text-border">|</span>
+            <span className="text-muted-foreground">Site</span>
+            <span className="font-semibold text-foreground">{person.site}</span>
+            <span className="text-border">|</span>
+            <span className="text-muted-foreground">Projets en cours</span>
+            <span className="font-semibold tabular-nums text-foreground">
+              {person.projects.length}
+            </span>
+          </div>
+        ) : null}
+
+        <Field label="Rôle APQP">
+          <Input
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            placeholder="Ex. Plan de surveillance"
+          />
+        </Field>
 
         <div>
           <div className="flex items-baseline gap-2">
             <p className="flex-1 text-[12px] font-medium text-muted-foreground">
-              Allocation au projet
+              Charge affectée au projet
             </p>
             <span className="text-[14px] font-bold tabular-nums text-[#0E7C52]">
-              {allocation} %
+              {formatNumber(hours)} h
+            </span>
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              ≈ {(hours / HOURS_PER_ETP).toFixed(2).replace(".", ",")} ETP
             </span>
           </div>
           <input
             type="range"
-            min={5}
-            max={100}
-            step={5}
-            value={allocation}
-            onChange={(e) => setAllocation(Number(e.target.value))}
-            aria-label="Allocation au projet"
+            min={0}
+            max={HOURS_PER_ETP}
+            step={10}
+            value={hours}
+            onChange={(e) => setHours(Number(e.target.value))}
+            aria-label="Charge affectée au projet, en heures"
             className="mt-1.5 h-1.5 w-full cursor-pointer appearance-none rounded-full accent-[#16A46B]"
             style={{
-              background: `linear-gradient(to right, #16A46B ${allocation}%, #EFF1F4 ${allocation}%)`,
+              background: `linear-gradient(to right, #16A46B ${(hours / HOURS_PER_ETP) * 100}%, #EFF1F4 ${(hours / HOURS_PER_ETP) * 100}%)`,
             }}
           />
+          <div className="mt-1 flex justify-between text-[10px] tabular-nums text-muted-foreground">
+            <span>0 h</span>
+            <span>{formatNumber(HOURS_PER_ETP)} h — 1 ETP</span>
+          </div>
+          {person && over > 0 ? (
+            <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[#B45F09]">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {formatNumber(over)} h au-delà de la disponibilité de {person.name} —
+              il faudra replanifier ou réduire.
+            </p>
+          ) : null}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
           <Button onClick={onClose}>Annuler</Button>
           <Button
             variant="primary"
-            disabled={missing}
-            title={missing ? "Le nom du membre est obligatoire" : undefined}
+            disabled={!person}
+            title={!person ? "Choisissez une personne dans la liste" : undefined}
             onClick={() =>
+              person &&
               onAdd({
-                name: name.trim(),
-                initials: getInitials(name.trim()),
-                fn,
+                name: person.name,
+                initials: person.initials,
+                fn: person.fn,
                 role: role.trim() || "À définir",
-                allocation,
-                site,
-                color: FUNCTION_COLOR[fn] ?? "#667085",
+                hours,
+                site: person.site,
+                color: person.color,
               })
             }
           >
@@ -438,39 +610,60 @@ function AddCoreMemberModal({
   );
 }
 
-const ORG_TYPES: ExtendedMember["orgType"][] = ["Client", "Fournisseur", "Interne"];
+/** Couleur d'avatar par type d'organisation, cohérente avec les puces. */
+const ORG_COLOR: Record<ExtendedMember["orgType"], string> = {
+  Client: "#3976D3",
+  Fournisseur: "#E58A00",
+  Interne: "#667085",
+};
 const GATE_IDS = ["G0", "G1", "G2", "G3", "G4", "G5"];
 
 function AddExtendedMemberModal({
   open,
+  taken,
   onClose,
   onAdd,
 }: {
   open: boolean;
+  /** Contacts déjà convoqués — proposés mais non sélectionnables. */
+  taken: string[];
   onClose: () => void;
   onAdd: (m: ExtendedMember) => void;
 }) {
-  const [name, setName] = React.useState("");
-  const [org, setOrg] = React.useState("");
-  const [orgType, setOrgType] = React.useState<ExtendedMember["orgType"]>("Fournisseur");
+  const [name, setName] = React.useState<string | null>(null);
   const [role, setRole] = React.useState("");
   const [gates, setGates] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (!open) return;
-    setName("");
-    setOrg("");
-    setOrgType("Fournisseur");
+    setName(null);
     setRole("");
     setGates([]);
   }, [open]);
 
+  const contact = name ? EXTERNAL_CONTACTS.find((c) => c.name === name) : undefined;
+
+  // Le rôle proposé est celui de l'annuaire ; il reste ajustable pour ce projet.
+  React.useEffect(() => {
+    if (contact) setRole(contact.role);
+  }, [contact]);
+
+  const options: PickOption[] = EXTERNAL_CONTACTS.map((c) => ({
+    name: c.name,
+    initials: c.initials,
+    color: ORG_COLOR[c.orgType],
+    detail: `${c.org} · ${c.role}`,
+    hint: c.orgType,
+    hintTone: "muted",
+    taken: taken.includes(c.name),
+  }));
+
   const toggleGate = (g: string) =>
     setGates((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
 
-  // Un contact étendu n'a de sens que rattaché à une organisation et à au moins
-  // une gate : c'est ce qui détermine quand on le convoque.
-  const missing = !name.trim() || !org.trim() || gates.length === 0;
+  // Un contact n'a de sens que rattaché à au moins une gate : c'est ce qui
+  // détermine quand on le convoque.
+  const missing = !contact || gates.length === 0;
 
   return (
     <Modal
@@ -486,42 +679,39 @@ function AddExtendedMemberModal({
       }
     >
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-          <Field label="Nom du contact" required className="col-span-2">
-            <Input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex. Marco Rossi"
-            />
-          </Field>
-
-          <Field label="Organisation" required>
-            <Input
-              value={org}
-              onChange={(e) => setOrg(e.target.value)}
-              placeholder="Ex. Fonderie Lombardia"
-            />
-          </Field>
-          <Field label="Type d'organisation">
-            <Select
-              value={orgType}
-              onChange={(e) => setOrgType(e.target.value as ExtendedMember["orgType"])}
-            >
-              {ORG_TYPES.map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </Select>
-          </Field>
-
-          <Field label="Rôle" className="col-span-2">
-            <Input
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              placeholder="Ex. Fourniture brut aluminium"
-            />
-          </Field>
+        <div>
+          <p className="mb-1 text-[12px] font-medium text-muted-foreground">
+            Contact<span className="ml-0.5 text-[#D92D20]">*</span>
+            <span className="ml-1 text-[10px]">
+              — son organisation et son type viennent de l&apos;annuaire
+            </span>
+          </p>
+          <PersonPicker
+            options={options}
+            value={name}
+            onChange={setName}
+            placeholder="Rechercher un contact par nom ou organisation…"
+            emptyLabel="Aucun contact ne correspond à cette recherche."
+          />
         </div>
+
+        {contact ? (
+          <div className="flex items-center gap-2 rounded-lg bg-muted px-2.5 py-1.5 text-[11px]">
+            <span className="text-muted-foreground">Organisation</span>
+            <span className="font-semibold text-foreground">{contact.org}</span>
+            <Chip tone={ORG_TONE[contact.orgType]} className="px-1.5 py-0 text-[9px]">
+              {contact.orgType}
+            </Chip>
+          </div>
+        ) : null}
+
+        <Field label="Rôle sur ce projet">
+          <Input
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            placeholder="Ex. Fourniture brut aluminium"
+          />
+        </Field>
 
         <div>
           <p className="mb-1.5 text-[12px] font-medium text-muted-foreground">
@@ -555,15 +745,20 @@ function AddExtendedMemberModal({
             variant="primary"
             disabled={missing}
             title={
-              missing ? "Nom, organisation et au moins une gate sont obligatoires" : undefined
+              !contact
+                ? "Choisissez un contact dans la liste"
+                : missing
+                  ? "Sélectionnez au moins une gate de convocation"
+                  : undefined
             }
             onClick={() =>
+              contact &&
               onAdd({
-                name: name.trim(),
-                initials: getInitials(name.trim()),
-                org: org.trim(),
-                orgType,
-                role: role.trim() || "À définir",
+                name: contact.name,
+                initials: contact.initials,
+                org: contact.org,
+                orgType: contact.orgType,
+                role: role.trim() || contact.role,
                 // Les gates restent affichées dans l'ordre du référentiel.
                 gates: GATE_IDS.filter((g) => gates.includes(g)).join(", "),
               })

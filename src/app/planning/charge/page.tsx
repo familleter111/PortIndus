@@ -26,6 +26,7 @@ import {
   LOAD_LEVELS,
   LOAD_MONTHS,
   LOAD_PHASES,
+  PROJECTS,
   SERVICE_LOAD,
   STATUS_DATE,
   type LoadPilot,
@@ -187,8 +188,8 @@ export default function ChargeParServicePage() {
               </span>
             </div>
             <p className="text-[12px] text-muted-foreground">
-              Les 24 projets du portefeuille sur un axe unique — jalons, dérives et chevauchement
-              des équipes.
+              Les {PROJECTS.length} projets du portefeuille sur un axe unique — jalons, dérives et
+              chevauchement des équipes.
             </p>
           </div>
 
@@ -423,9 +424,11 @@ export default function ChargeParServicePage() {
                                   : undefined
                               }
                             >
-                              {s.members.length < s.pilots && (narrowed || q !== "")
-                                ? `${s.members.length}/${s.pilots} pilotes`
-                                : `${s.pilots} pilotes`}
+                              {s.pilots === 0
+                                ? "aucun pilote affecté"
+                                : s.members.length < s.pilots && (narrowed || q !== "")
+                                  ? `${s.members.length}/${s.pilots} pilotes`
+                                  : `${s.pilots} pilote${s.pilots > 1 ? "s" : ""}`}
                             </span>
                           </button>
                         </td>

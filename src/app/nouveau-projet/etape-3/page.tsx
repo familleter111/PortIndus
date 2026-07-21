@@ -29,7 +29,13 @@ import {
   Panel,
   Select,
 } from "@/components/ui/primitives";
-import { NEW_PROJECT, NEW_PROJECT_FUNCTIONS, PEOPLE_LOAD } from "@/lib/data";
+import {
+  FUNCTIONS,
+  FUNCTION_COLOR,
+  NEW_PROJECT,
+  PEOPLE_LOAD,
+  type FunctionName,
+} from "@/lib/data";
 import { cn, formatNumber } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------- */
@@ -179,7 +185,7 @@ function RatioCell({ ratio, barClass }: { ratio: number; barClass?: string }) {
 /* -------------------------------------------------------------------------- */
 
 interface FnRow {
-  fn: string;
+  fn: FunctionName;
   capacity: number;
   load: number;
   color: string;
@@ -217,18 +223,29 @@ export default function Etape3Page() {
   const [sop, setSop] = React.useState(frToIso(NEW_PROJECT.sop));
   const [calendar, setCalendar] = React.useState(NEW_PROJECT.calendar);
 
-  const [functions, setFunctions] = React.useState<FnRow[]>(
-    NEW_PROJECT_FUNCTIONS.map((f) => ({
-      fn: f.fn,
-      capacity: f.capacity,
-      load: f.load,
-      color: f.color,
-    })),
-  );
   const [resources, setResources] = React.useState<ResRow[]>(RESOURCE_SEED);
 
-  const patchFn = (i: number, next: Partial<FnRow>) =>
-    setFunctions((rows) => rows.map((r, k) => (k === i ? { ...r, ...next } : r)));
+  /*
+   * L'aperçu par fonction était saisi à côté des affectations nominatives :
+   * les deux tableaux annonçaient des heures différentes pour une même
+   * fonction, et le sélecteur de fonction retombait sur « Qualité » pour les
+   * personnes dont la fonction ne figurait pas dans la liste. Il se calcule
+   * désormais — capacité = charge + disponibilité de chaque personne — et ne
+   * peut plus contredire les lignes du dessous.
+   */
+  const functions = React.useMemo<FnRow[]>(
+    () =>
+      FUNCTIONS.map((fn) => {
+        const rows = resources.filter((r) => r.fn === fn);
+        return {
+          fn,
+          color: FUNCTION_COLOR[fn],
+          load: rows.reduce((n, r) => n + r.load, 0),
+          capacity: rows.reduce((n, r) => n + r.load + r.available, 0),
+        };
+      }).filter((f) => f.capacity > 0 || f.load > 0),
+    [resources],
+  );
 
   const patchRes = (id: string, next: Partial<ResRow>) =>
     setResources((rows) => rows.map((r) => (r.id === id ? { ...r, ...next } : r)));
@@ -379,7 +396,7 @@ export default function Etape3Page() {
             icon={<Users className="h-4 w-4 text-muted-foreground" />}
             action={
               <span className="text-[10px] text-muted-foreground">
-                Capacité et charge modifiables
+                Somme des affectations ci-dessous
               </span>
             }
             className="col-span-5"
@@ -395,7 +412,7 @@ export default function Etape3Page() {
                 </tr>
               </thead>
               <tbody>
-                {functions.map((f, i) => {
+                {functions.map((f) => {
                   const ratio = ratioOf(f.load, f.capacity);
                   return (
                     <tr key={f.fn} className="border-b border-border/60 last:border-0">
@@ -405,19 +422,11 @@ export default function Etape3Page() {
                           {f.fn}
                         </span>
                       </td>
-                      <td className="py-[6px] pr-2 text-right">
-                        <NumCell
-                          value={f.capacity}
-                          onChange={(n) => patchFn(i, { capacity: n })}
-                          suffix="h"
-                        />
+                      <td className="py-[6px] pr-2 text-right tabular-nums text-foreground">
+                        {formatNumber(f.capacity)} h
                       </td>
-                      <td className="py-[6px] pr-2 text-right">
-                        <NumCell
-                          value={f.load}
-                          onChange={(n) => patchFn(i, { load: n })}
-                          suffix="h"
-                        />
+                      <td className="py-[6px] pr-2 text-right tabular-nums text-foreground">
+                        {formatNumber(f.load)} h
                       </td>
                       <td className="px-3.5 py-[6px]">
                         <RatioCell ratio={ratio} />
@@ -555,16 +564,20 @@ export default function Etape3Page() {
                       </span>
                     </td>
                     <td className="px-2.5 py-[6px]">
+                      {/* Le référentiel complet, et non les seules fonctions
+                          déjà pourvues : sinon une fonction vide serait
+                          inatteignable, et une personne dont la fonction manque
+                          à la liste s'afficherait sous la première venue. */}
                       <Select
                         value={r.fn}
                         onChange={(e) => {
-                          const fn = functions.find((f) => f.fn === e.target.value);
-                          patchRes(r.id, { fn: e.target.value, color: fn?.color ?? r.color });
+                          const fn = e.target.value as FunctionName;
+                          patchRes(r.id, { fn, color: FUNCTION_COLOR[fn] });
                         }}
                         className="h-7 w-[130px] py-0 text-[11px]"
                       >
-                        {functions.map((f) => (
-                          <option key={f.fn}>{f.fn}</option>
+                        {FUNCTIONS.map((f) => (
+                          <option key={f}>{f}</option>
                         ))}
                       </Select>
                     </td>
