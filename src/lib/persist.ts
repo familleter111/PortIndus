@@ -28,6 +28,8 @@ export const KEYS = {
   resources: "projet.resources",
   projectDates: "projet.dates",
   description: "projet.description",
+  reportLibrary: "rapports.bibliotheque",
+  reportDraft: "rapports.brouillon",
 } as const;
 
 function read<T>(key: string): T | null {

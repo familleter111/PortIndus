@@ -2166,3 +2166,330 @@ export const NOTIFICATION_SUMMARY = [
   { label: "Prochaine gate", detail: "G3 Process Freeze", value: "G3", tone: "red" as const, icon: "flag" },
   { label: "Dernier événement projet", detail: "Contribution mise à jour", value: "60 %", tone: "blue" as const, icon: "file" },
 ];
+
+/* --------------------------------- Rapports ------------------------------- */
+
+/**
+ * L'utilisateur connecté. Un rapport est signé : il lui faut un auteur, et cet
+ * auteur doit être le même que celui affiché dans l'en-tête de l'application.
+ */
+export const CURRENT_USER = { name: "Leïla Mansour", initials: "LM" };
+
+/**
+ * Un rapport suit toujours le même cycle :
+ *
+ *   Modèle ──▶ Paramètres ──▶ Génération IA ──▶ Édition texte ──▶ Export PDF
+ *
+ * Ce que l'IA rédige — synthèse, recommandations, décision — est modifiable.
+ * Ce qui vient des données — indicateurs, tableaux, risques — ne l'est pas :
+ * un rapport dont on pourrait retoucher les chiffres ne vaudrait rien en revue
+ * client. C'est `kind` qui tranche, section par section.
+ */
+export type ReportStatus = "Brouillon" | "Généré" | "En révision" | "Exporté PDF";
+
+/** Couleur du statut, identique partout où il s'affiche. */
+export const REPORT_STATUS_TONE: Record<ReportStatus, "slate" | "green" | "amber" | "blue"> = {
+  Brouillon: "slate",
+  Généré: "green",
+  "En révision": "amber",
+  "Exporté PDF": "blue",
+};
+
+export type ReportTemplateId = "direction" | "gate-client" | "decision";
+
+export interface ReportSectionSpec {
+  id: string;
+  title: string;
+  /** `text` : rédigé par l'IA, modifiable. `data` : issu des données, verrouillé. */
+  kind: "text" | "data";
+  /** Bloc de données à composer — voir `buildReport()`. */
+  block?: "kpis" | "projets" | "livrables" | "risques" | "charge" | "gates" | "sante";
+}
+
+export interface ReportTemplate {
+  id: ReportTemplateId;
+  name: string;
+  tagline: string;
+  audience: string;
+  /** Un rapport porte sur tout le portefeuille ou sur un seul projet. */
+  scope: "portefeuille" | "projet";
+  sections: ReportSectionSpec[];
+  /** Fourchette annoncée avant génération, en secondes. */
+  estimate: [number, number];
+  /** Nombre de feuilles A4 paysage produites. */
+  pages: number;
+}
+
+export const REPORT_TEMPLATES: ReportTemplate[] = [
+  {
+    id: "direction",
+    name: "Portefeuille APQP — Vue direction",
+    tagline: "Tableau de bord d'une page : performance et décisions du portefeuille.",
+    audience: "Direction",
+    scope: "portefeuille",
+    estimate: [120, 180],
+    pages: 1,
+    sections: [
+      { id: "kpis", title: "Indicateurs de pilotage", kind: "data", block: "kpis" },
+      { id: "projets", title: "Vue synthèse du portefeuille", kind: "data", block: "projets" },
+      { id: "sante", title: "Répartition et readiness par phase", kind: "data", block: "sante" },
+      { id: "gates", title: "Calendrier des gates à venir", kind: "data", block: "gates" },
+      { id: "risques", title: "Top risques portefeuille", kind: "data", block: "risques" },
+      { id: "charge", title: "Charge vs capacité", kind: "data", block: "charge" },
+      { id: "synthese", title: "Insights clés pour la direction", kind: "text" },
+      { id: "reco", title: "Recommandations", kind: "text" },
+      { id: "conclusion", title: "Décisions attendues", kind: "text" },
+    ],
+  },
+  {
+    id: "gate-client",
+    name: "Rapport client — Revue de gate",
+    tagline: "Revue de gate d'une page, mise en forme pour le client.",
+    audience: "Client",
+    scope: "projet",
+    estimate: [150, 210],
+    pages: 1,
+    sections: [
+      { id: "synthese", title: "Synthèse exécutive", kind: "text" },
+      { id: "livrables", title: "Statut des livrables obligatoires", kind: "data", block: "livrables" },
+      { id: "risques", title: "Risques & actions", kind: "data", block: "risques" },
+      { id: "gates", title: "Avancement par phase APQP", kind: "data", block: "gates" },
+      { id: "charge", title: "Capacité & charge", kind: "data", block: "charge" },
+      { id: "kpis", title: "Indicateurs clés", kind: "data", block: "kpis" },
+      { id: "reco", title: "Commentaires & points d'attention", kind: "text" },
+      { id: "conclusion", title: "Décision & prochaines étapes", kind: "text" },
+    ],
+  },
+  {
+    id: "decision",
+    name: "Gate review — Présentation, détail et décision",
+    tagline: "Dossier de revue en quatre feuilles : gate, portefeuille, livrables, décision.",
+    audience: "Décision / Détail",
+    scope: "projet",
+    estimate: [180, 260],
+    pages: 4,
+    sections: [
+      { id: "synthese", title: "Résumé de la décision", kind: "text" },
+      { id: "livrables", title: "Statut des livrables obligatoires", kind: "data", block: "livrables" },
+      { id: "risques", title: "Risques & actions critiques", kind: "data", block: "risques" },
+      { id: "charge", title: "Capacité & charge", kind: "data", block: "charge" },
+      { id: "kpis", title: "Synthèse portefeuille", kind: "data", block: "kpis" },
+      { id: "projets", title: "État des gates par programme", kind: "data", block: "projets" },
+      { id: "sante", title: "Contribution des livrables et criticité", kind: "data", block: "sante" },
+      { id: "reco", title: "Commentaires clés", kind: "text" },
+      { id: "conclusion", title: "Justification de la décision", kind: "text" },
+      { id: "gates", title: "Conditions, étapes et votes", kind: "data", block: "gates" },
+    ],
+  },
+];
+
+export function reportTemplate(id: ReportTemplateId): ReportTemplate {
+  return REPORT_TEMPLATES.find((t) => t.id === id) ?? REPORT_TEMPLATES[0];
+}
+
+/** Sources de données mobilisées par la génération — les mêmes pour tous. */
+export const REPORT_SOURCES = [
+  "Données projet et portefeuille",
+  "KPI et tableaux de bord",
+  "Risques et plans d'actions",
+  "Décisions et historiques de gates",
+  "Commentaires et documents",
+];
+
+export const REPORT_PERIODS = [
+  "T4 2026 (01/10/2026 – 31/12/2026)",
+  "T3 2026 (01/07/2026 – 30/09/2026)",
+  "S2 2026 (01/07/2026 – 31/12/2026)",
+  "Année 2026 (01/01/2026 – 31/12/2026)",
+];
+
+export const REPORT_CONFIDENTIALITY = ["Interne", "Client", "Diffusion restreinte"];
+export const REPORT_LANGUAGES = ["Français", "Anglais"];
+
+/** Le ton ne change pas les chiffres, seulement la rédaction des sections texte. */
+export const REPORT_TONES = ["Professionnel", "Synthétique", "Orienté client"] as const;
+export type ReportToneName = (typeof REPORT_TONES)[number];
+
+export interface ReportVersion {
+  version: string;
+  date: string;
+  author: string;
+  status: ReportStatus;
+}
+
+export interface ReportDoc {
+  id: string;
+  name: string;
+  template: ReportTemplateId;
+  /** Identifiant projet, ou `PORTFOLIO` pour un rapport de portefeuille. */
+  scopeId: string;
+  client: string;
+  gate: string;
+  version: string;
+  status: ReportStatus;
+  generatedAt: string;
+  editedAt: string;
+  author: string;
+  /** Durée réelle de génération, en secondes — alimente le temps moyen. */
+  genSeconds: number;
+  history: ReportVersion[];
+}
+
+export const REPORT_LIBRARY: ReportDoc[] = [
+  {
+    id: "R-2026-014", name: "Portefeuille APQP — Vue direction — T4 2026",
+    template: "direction", scopeId: "PORTFOLIO", client: "Tous clients", gate: "—",
+    version: "V2.0", status: "Exporté PDF", generatedAt: "15/12/2026 09:42",
+    editedAt: "15/12/2026 10:15", author: "Leïla Mansour", genSeconds: 158,
+    history: [
+      { version: "V2.0", date: "15/12/2026 10:15", author: "Leïla Mansour", status: "Exporté PDF" },
+      { version: "V1.1", date: "15/12/2026 09:20", author: "Leïla Mansour", status: "En révision" },
+      { version: "V1.0", date: "15/12/2026 09:42", author: "Leïla Mansour", status: "Généré" },
+    ],
+  },
+  {
+    id: "R-2026-013", name: "Revue de gate G3 — Carter aluminium e-Drive",
+    template: "gate-client", scopeId: "P-DEMO-001", client: "OEM Alpha", gate: "G3",
+    version: "V1.1", status: "Brouillon", generatedAt: "14/12/2026 08:31",
+    editedAt: "14/12/2026 09:02", author: "Youssef Jaziri", genSeconds: 192,
+    history: [
+      { version: "V1.1", date: "14/12/2026 09:02", author: "Youssef Jaziri", status: "Brouillon" },
+      { version: "V1.0", date: "14/12/2026 08:31", author: "Youssef Jaziri", status: "Généré" },
+    ],
+  },
+  {
+    id: "R-2026-012", name: "Gate review G4 — Armature siège avant",
+    template: "decision", scopeId: "P-DEMO-002", client: "OEM Beta", gate: "G4",
+    version: "V2.0", status: "En révision", generatedAt: "12/12/2026 14:05",
+    editedAt: "12/12/2026 14:40", author: "Hatem Ben Ali", genSeconds: 121,
+    history: [
+      { version: "V2.0", date: "12/12/2026 14:40", author: "Hatem Ben Ali", status: "En révision" },
+      { version: "V1.0", date: "12/12/2026 14:05", author: "Hatem Ben Ali", status: "Généré" },
+    ],
+  },
+  {
+    id: "R-2026-011", name: "Revue de gate G2 — Support batterie EV",
+    template: "gate-client", scopeId: "P-DEMO-003", client: "OEM Gamma", gate: "G2",
+    version: "V1.0", status: "Généré", generatedAt: "11/12/2026 11:22",
+    editedAt: "11/12/2026 11:40", author: "Sarra Khelifi", genSeconds: 176,
+    history: [
+      { version: "V1.0", date: "11/12/2026 11:22", author: "Sarra Khelifi", status: "Généré" },
+    ],
+  },
+  {
+    id: "R-2026-010", name: "Gate review G3 — Boîtier électronique BMS",
+    template: "decision", scopeId: "P-DEMO-005", client: "OEM Delta", gate: "G3",
+    version: "V1.2", status: "Exporté PDF", generatedAt: "09/12/2026 17:48",
+    editedAt: "09/12/2026 18:05", author: "Karim Belhadj", genSeconds: 134,
+    history: [
+      { version: "V1.2", date: "09/12/2026 18:05", author: "Karim Belhadj", status: "Exporté PDF" },
+      { version: "V1.1", date: "09/12/2026 17:56", author: "Karim Belhadj", status: "En révision" },
+      { version: "V1.0", date: "09/12/2026 17:48", author: "Karim Belhadj", status: "Généré" },
+    ],
+  },
+  {
+    id: "R-2026-009", name: "Revue de gate G4 — Traverse de choc avant",
+    template: "gate-client", scopeId: "P-DEMO-006", client: "OEM Beta", gate: "G4",
+    version: "V1.0", status: "Exporté PDF", generatedAt: "07/12/2026 10:12",
+    editedAt: "07/12/2026 10:30", author: "Noura Trabelsi", genSeconds: 165,
+    history: [
+      { version: "V1.0", date: "07/12/2026 10:12", author: "Noura Trabelsi", status: "Exporté PDF" },
+    ],
+  },
+  {
+    id: "R-2026-008", name: "Portefeuille APQP — Risques et actions",
+    template: "direction", scopeId: "PORTFOLIO", client: "Tous clients", gate: "—",
+    version: "V1.0", status: "Généré", generatedAt: "04/12/2026 16:20",
+    editedAt: "04/12/2026 16:45", author: "Leïla Mansour", genSeconds: 148,
+    history: [
+      { version: "V1.0", date: "04/12/2026 16:20", author: "Leïla Mansour", status: "Généré" },
+    ],
+  },
+  {
+    id: "R-2026-007", name: "Revue de gate G2 — Carter réducteur fonte",
+    template: "gate-client", scopeId: "P-DEMO-007", client: "OEM Gamma", gate: "G2",
+    version: "V1.0", status: "En révision", generatedAt: "02/12/2026 08:50",
+    editedAt: "02/12/2026 09:15", author: "Youssef Jaziri", genSeconds: 183,
+    history: [
+      { version: "V1.0", date: "02/12/2026 08:50", author: "Youssef Jaziri", status: "En révision" },
+    ],
+  },
+  {
+    id: "R-2026-006", name: "Gate review G3 — Faisceau haute tension",
+    template: "decision", scopeId: "P-DEMO-008", client: "OEM Delta", gate: "G3",
+    version: "V1.0", status: "Brouillon", generatedAt: "28/11/2026 15:04",
+    editedAt: "28/11/2026 15:22", author: "Hassan Kacem", genSeconds: 112,
+    history: [
+      { version: "V1.0", date: "28/11/2026 15:04", author: "Hassan Kacem", status: "Brouillon" },
+    ],
+  },
+  {
+    id: "R-2026-005", name: "Revue de gate G1 — Module de refroidissement",
+    template: "gate-client", scopeId: "P-DEMO-004", client: "OEM Alpha", gate: "G1",
+    version: "V1.0", status: "Exporté PDF", generatedAt: "24/11/2026 09:33",
+    editedAt: "24/11/2026 10:01", author: "Leïla Mansour", genSeconds: 171,
+    history: [
+      { version: "V1.0", date: "24/11/2026 09:33", author: "Leïla Mansour", status: "Exporté PDF" },
+    ],
+  },
+  {
+    id: "R-2026-004", name: "Portefeuille APQP — Vue direction — T3 2026",
+    template: "direction", scopeId: "PORTFOLIO", client: "Tous clients", gate: "—",
+    version: "V1.0", status: "Exporté PDF", generatedAt: "19/11/2026 14:12",
+    editedAt: "19/11/2026 14:58", author: "Leïla Mansour", genSeconds: 155,
+    history: [
+      { version: "V1.0", date: "19/11/2026 14:12", author: "Leïla Mansour", status: "Exporté PDF" },
+    ],
+  },
+  {
+    id: "R-2026-003", name: "Gate review G2 — Support batterie EV",
+    template: "decision", scopeId: "P-DEMO-003", client: "OEM Gamma", gate: "G2",
+    version: "V1.0", status: "Brouillon", generatedAt: "12/11/2026 11:47",
+    editedAt: "12/11/2026 12:03", author: "Sarra Khelifi", genSeconds: 126,
+    history: [
+      { version: "V1.0", date: "12/11/2026 11:47", author: "Sarra Khelifi", status: "Brouillon" },
+    ],
+  },
+];
+
+/** Auteurs présents dans la bibliothèque — sert à peupler le filtre. */
+export const REPORT_AUTHORS: string[] = Array.from(
+  new Set(REPORT_LIBRARY.map((r) => r.author)),
+).sort((a, b) => a.localeCompare(b, "fr"));
+
+/** mm:ss — format d'affichage du temps de génération. */
+export function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * Compteurs de l'écran Rapports. Tous comptés sur la bibliothèque : un rapport
+ * ajouté ou exporté pendant la démonstration déplace les chiffres, il ne peut
+ * pas les contredire.
+ */
+export function reportStats(all: ReportDoc[] = REPORT_LIBRARY) {
+  const drafts = all.filter((r) => r.status === "Brouillon").length;
+  const exported = all.filter((r) => r.status === "Exporté PDF").length;
+  const reviewing = all.filter((r) => r.status === "En révision").length;
+  const avg = all.length
+    ? all.reduce((n, r) => n + r.genSeconds, 0) / all.length
+    : 0;
+  return {
+    total: all.length,
+    drafts,
+    exported,
+    reviewing,
+    generated: all.length - drafts,
+    avgSeconds: Math.round(avg),
+    avgLabel: formatDuration(avg),
+  };
+}
+
+/** Libellé du périmètre : nom du projet, ou portefeuille complet. */
+export function reportScopeLabel(scopeId: string): string {
+  if (scopeId === "PORTFOLIO") return "Portefeuille global";
+  const p = PROJECTS.find((x) => x.id === scopeId);
+  return p ? `${p.id} — ${p.name}` : scopeId;
+}

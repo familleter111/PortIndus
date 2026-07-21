@@ -118,6 +118,37 @@
     opacity: 0.55;
   }
 
+  /*
+   * Export PDF. Faute de serveur, le fichier est produit par la boîte
+   * d'impression du navigateur : à l'impression on masque l'application et on
+   * ne laisse que le document, monté à part dans #print-root. Sans cela, la
+   * barre latérale et les panneaux se retrouveraient dans le PDF.
+   */
+  #print-root {
+    display: none;
+  }
+
+  @media print {
+    #app-frame {
+      display: none !important;
+    }
+    #print-root {
+      display: block !important;
+    }
+    /* Les fonds et les couleurs de statut portent l'information : les laisser
+       tomber à l'impression viderait le rapport de sa lecture. */
+    body,
+    #print-root * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    /* Une section coupée en deux entre deux pages devient illisible. */
+    #print-root section,
+    #print-root table {
+      break-inside: avoid;
+    }
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;

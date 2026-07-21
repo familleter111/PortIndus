@@ -26,7 +26,7 @@ import {
 import { useScenario } from "@/components/layout/scenario-context";
 import { Markdown } from "@/components/shared/markdown";
 import { Modal } from "@/components/ui/primitives";
-import { STATUS_DATE } from "@/lib/data";
+import { CURRENT_USER, STATUS_DATE } from "@/lib/data";
 import { clearSavedWork, hasSavedWork } from "@/lib/persist";
 import { cn } from "@/lib/utils";
 
@@ -77,7 +77,7 @@ const NAV: NavItem[] = [
   // modales du parcours de contribution, sans quitter « Exécution ».
   { label: "Exécution", href: "/execution", icon: LineChart, owns: ["/execution"] },
   { label: "Ressources", icon: Users },
-  { label: "Rapports", icon: BarChart3 },
+  { label: "Rapports", href: "/rapports", icon: BarChart3, owns: ["/rapports"] },
   { label: "Paramètres", icon: Settings },
 ];
 
@@ -331,8 +331,11 @@ export function AppShell({
             ) : null}
           </button>
 
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E8FBF1] text-[11px] font-bold text-[#0E7C52]">
-            PL
+          <span
+            title={CURRENT_USER.name}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E8FBF1] text-[11px] font-bold text-[#0E7C52]"
+          >
+            {CURRENT_USER.initials}
           </span>
         </header>
 
