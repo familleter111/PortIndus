@@ -184,24 +184,23 @@ export function AppShell({
               type="button"
               onDoubleClick={isHome ? () => setScenarioOpen(true) : undefined}
               title={
-                isHome
-                  ? "Double-cliquez pour ouvrir le scénario de démonstration"
-                  : "TTE International"
+                isHome ? "Double-cliquez pour ouvrir le scénario de démonstration" : "APQP"
               }
               aria-label={
-                isHome
-                  ? "TTE International — double-cliquez pour ouvrir le scénario"
-                  : "TTE International"
+                isHome ? "APQP — double-cliquez pour ouvrir le scénario" : "APQP"
               }
               className={cn("min-w-0 flex-1 text-left", isHome ? "cursor-pointer" : "cursor-default")}
             >
+              {/* Logo large (2024 × 777) : à 136 px il occupe 52 px de haut et
+                  tient dans la barre de 60 px. Next sert une version
+                  redimensionnée, la source n'est pas envoyée telle quelle. */}
               <Image
-                src="/ttei.jpg"
-                alt="TTE International — A Onetech company"
-                width={300}
-                height={175}
+                src="/apqp.png"
+                alt="APQP"
+                width={2024}
+                height={777}
                 priority
-                className="h-auto w-[132px] select-none object-contain"
+                className="h-auto w-[136px] select-none object-contain"
               />
             </button>
           ) : null}
