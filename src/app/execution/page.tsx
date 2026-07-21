@@ -759,13 +759,16 @@ function ListView({
                     className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-[#FCFCFD]"
                   >
                     <td className="py-2 pl-3 pr-2">
-                      {/* Le décalage matérialise le niveau : jalon à gauche,
-                          sous-tâche en retrait — l'arborescence se lit à l'œil. */}
-                      <span
-                        className="flex items-center gap-2"
-                        style={{ paddingLeft: CONTRIB_LEVELS.indexOf(c.level) * 12 }}
-                      >
-                        <span className="shrink-0">{STATUS_ICON[st]}</span>
+                      {/*
+                       * Tous les intitulés partent du même bord. Un retrait
+                       * proportionnel au niveau matérialisait l'arborescence,
+                       * mais le tableau se trie et se filtre : une sous-tâche
+                       * pouvait se retrouver au-dessus de sa tâche, et le
+                       * décalage ne désignait plus rien. Le niveau se lit dans
+                       * sa propre colonne, juste à côté.
+                       */}
+                      <span className="flex items-start gap-2">
+                        <span className="mt-px shrink-0">{STATUS_ICON[st]}</span>
                         <span className="font-medium text-foreground">{c.title}</span>
                       </span>
                     </td>
