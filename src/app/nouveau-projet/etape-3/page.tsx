@@ -564,22 +564,17 @@ export default function Etape3Page() {
                       </span>
                     </td>
                     <td className="px-2.5 py-[6px]">
-                      {/* Le référentiel complet, et non les seules fonctions
-                          déjà pourvues : sinon une fonction vide serait
-                          inatteignable, et une personne dont la fonction manque
-                          à la liste s'afficherait sous la première venue. */}
-                      <Select
-                        value={r.fn}
-                        onChange={(e) => {
-                          const fn = e.target.value as FunctionName;
-                          patchRes(r.id, { fn, color: FUNCTION_COLOR[fn] });
-                        }}
-                        className="h-7 w-[130px] py-0 text-[11px]"
+                      {/* La fonction vient de l'annuaire et ne se change pas
+                          ici : la rendre saisissable rouvrirait l'écart qu'on
+                          vient de fermer — une même personne relevant de deux
+                          fonctions selon l'écran. */}
+                      <span
+                        className="flex items-center gap-1.5 text-[11px] text-foreground"
+                        title={`${r.name} relève de la fonction ${r.fn} dans l'annuaire`}
                       >
-                        {FUNCTIONS.map((f) => (
-                          <option key={f}>{f}</option>
-                        ))}
-                      </Select>
+                        <Dot color={r.color} />
+                        <span className="truncate">{r.fn}</span>
+                      </span>
                     </td>
                     <td className="px-2.5 py-[6px]">
                       <NumCell

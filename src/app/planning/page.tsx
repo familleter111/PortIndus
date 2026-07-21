@@ -15,13 +15,17 @@ import {
   Pencil,
   Plus,
   Route,
+  Search,
+  SlidersHorizontal,
   Trash2,
   UserRound,
+  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { FilterSelect } from "@/components/planning/filter-select";
 import { Button, Card, Chip, Modal, type ChipTone } from "@/components/ui/primitives";
 import {
   GanttChart,
@@ -50,12 +54,21 @@ import {
 } from "@/components/planning/planning-modals";
 import {
   PLAN_RISKS,
+  PLAN_STATUSES,
   PLAN_ROWS,
   PROJECT,
   STATUS_DATE,
   type DepType,
   type PlanRow,
 } from "@/lib/data";
+
+/** Pastille de statut dans le filtre — même code couleur que les barres. */
+const STATUS_DOT: Record<string, string> = {
+  "En retard": "#D92D20",
+  "En cours": "#E58A00",
+  "Non démarré": "#D0D5DD",
+  "Terminé": "#2E7D32",
+};
 
 const TABS = ["Gantt", "Charge / Capacité", "Risques", "Chemin critique"];
 
@@ -90,7 +103,75 @@ export default function PlanningPage() {
   const [showBaseline, setShowBaseline] = React.useState(true);
   const [criticalPath, setCriticalPath] = React.useState(false);
 
-  const shownRows = React.useMemo(() => visibleRows(rows, collapsed), [rows, collapsed]);
+  /** Filtres du planning : ils pilotent le tableau, le Gantt et les risques. */
+  const [query, setQuery] = React.useState("");
+  const [owner, setOwner] = React.useState<string | null>(null);
+  const [status, setStatus] = React.useState<string | null>(null);
+  const [critical, setCritical] = React.useState<string | null>(null);
+
+  const q = query.trim().toLowerCase();
+  const filtering = Boolean(q || owner || status || critical);
+  const activeFilters = [q, owner, status, critical].filter(Boolean).length;
+
+  const matches = React.useCallback(
+    (r: PlanRow) =>
+      (!q || r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)) &&
+      (!owner || r.owner === owner) &&
+      (!status || r.status === status) &&
+      (!critical || (critical === "oui" ? r.critical : !r.critical)),
+    [q, owner, status, critical],
+  );
+
+  /*
+   * Une ligne retenue entraîne ses parents : sans eux la colonne « Tâche »
+   * afficherait des sous-tâches indentées sous rien. Un filtre actif ignore
+   * aussi les nœuds repliés — un résultat caché dans un pli ne se trouverait
+   * jamais.
+   */
+  const shownRows = React.useMemo(() => {
+    if (!filtering) return visibleRows(rows, collapsed);
+    const keep = new Set<string>();
+    for (const r of rows) {
+      if (!matches(r)) continue;
+      keep.add(r.wbs);
+      const parts = r.wbs.split(".");
+      for (let i = 1; i < parts.length; i++) keep.add(parts.slice(0, i).join("."));
+    }
+    return rows.filter((r) => keep.has(r.wbs));
+  }, [rows, collapsed, filtering, matches]);
+
+  /** Décompte par option, filtres voisins appliqués — comme la page charge. */
+  const countBy = React.useCallback(
+    (facet: "owner" | "status" | "critical", value: string) =>
+      rows.filter((r) => {
+        if (facet !== "owner" && owner && r.owner !== owner) return false;
+        if (facet !== "status" && status && r.status !== status) return false;
+        if (facet !== "critical" && critical && (critical === "oui") !== r.critical) return false;
+        if (q && !r.name.toLowerCase().includes(q) && !r.id.toLowerCase().includes(q)) return false;
+        if (facet === "owner") return r.owner === value;
+        if (facet === "status") return r.status === value;
+        return (value === "oui") === r.critical;
+      }).length,
+    [rows, owner, status, critical, q],
+  );
+
+  const owners = React.useMemo(
+    () => [...new Set(rows.map((r) => r.owner))].filter((o) => o !== "—").sort(),
+    [rows],
+  );
+
+  const clearFilters = () => {
+    setQuery("");
+    setOwner(null);
+    setStatus(null);
+    setCritical(null);
+  };
+
+  // Les risques désignent une ligne : ils suivent le filtre du planning.
+  const shownRisks = React.useMemo(
+    () => PLAN_RISKS.filter((k) => shownRows.some((r) => r.wbs === k.wbs)),
+    [shownRows],
+  );
   const selectedRow = rows.find((r) => r.wbs === selected) ?? null;
   const showPanel = panelOpen && selectedRow !== null;
 
@@ -586,6 +667,82 @@ export default function PlanningPage() {
           />
         ) : null}
 
+        {/* ------------------------------------------------------- Filtres */}
+        <div
+          className={`mt-1.5 flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border px-2 py-1.5 transition-colors ${
+            activeFilters ? "border-[#BFEFD5] bg-[#F7FDFA]" : "border-border bg-white"
+          }`}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="relative flex h-7 min-w-[150px] max-w-[220px] flex-1 items-center">
+            <Search className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher une tâche ou un ID…"
+              className="h-7 w-full rounded-lg border border-input bg-white pl-7 pr-6 text-[11px] text-foreground placeholder:text-muted-foreground focus:border-[#16A46B] focus:outline-none"
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Effacer la recherche"
+                className="absolute right-1.5 text-muted-foreground transition-colors hover:text-[#0E7C52]"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </span>
+
+          <FilterSelect
+            label="Responsable"
+            value={owner}
+            onChange={setOwner}
+            options={owners.map((o) => ({ value: o, label: o, count: countBy("owner", o) }))}
+          />
+          <FilterSelect
+            label="Statut"
+            value={status}
+            onChange={setStatus}
+            options={PLAN_STATUSES.map((st) => ({
+              value: st,
+              label: st,
+              dot: STATUS_DOT[st],
+              count: countBy("status", st),
+            }))}
+          />
+          <FilterSelect
+            label="Criticité"
+            value={critical}
+            onChange={setCritical}
+            allLabel="Toutes"
+            options={[
+              { value: "oui", label: "Chemin critique", dot: "#D92D20", count: countBy("critical", "oui") },
+              { value: "non", label: "Hors chemin critique", dot: "#D0D5DD", count: countBy("critical", "non") },
+            ]}
+          />
+
+          {activeFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="flex h-7 shrink-0 items-center gap-1 rounded-lg px-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[#E8FBF1] hover:text-[#0E7C52]"
+            >
+              <X className="h-3.5 w-3.5" />
+              Effacer
+              <span className="rounded-full bg-[#E8FBF1] px-1.5 text-[10px] font-bold text-[#0E7C52]">
+                {activeFilters}
+              </span>
+            </button>
+          ) : null}
+
+          <span className="ml-auto shrink-0 whitespace-nowrap text-[11px] text-muted-foreground">
+            <span className="font-semibold text-foreground">{shownRows.length}</span> ligne
+            {shownRows.length > 1 ? "s" : ""}
+            {filtering ? ` sur ${rows.length}` : ""}
+          </span>
+        </div>
+
         {/* ---------------------------------------------- Tableau + Gantt */}
         <div
           className="mt-1.5 grid min-h-0 flex-1 gap-2 transition-[grid-template-columns] duration-200"
@@ -633,10 +790,11 @@ export default function PlanningPage() {
         <div className="mt-2 h-[92px] shrink-0">
           <Card className="flex min-h-0 flex-col overflow-hidden px-3.5 py-2">
             <p className="shrink-0 text-[13px] font-semibold text-foreground">
-              Risques &amp; conflits détectés ({PLAN_RISKS.length})
+              Risques &amp; conflits détectés ({shownRisks.length}
+              {filtering && shownRisks.length !== PLAN_RISKS.length ? ` sur ${PLAN_RISKS.length}` : ""})
             </p>
             <ul className="mt-1 grid min-h-0 flex-1 grid-cols-2 gap-x-3 overflow-y-auto scrollbar-thin">
-              {PLAN_RISKS.map((r) => {
+              {shownRisks.map((r) => {
                 const isConflict = r.id === "conflit";
                 return (
                   <li key={r.id}>

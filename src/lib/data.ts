@@ -1625,27 +1625,40 @@ export const PLAN_ROWS: PlanRow[] = [
 /** Fenêtre visible du Gantt : 16 semaines, du lundi S35 au dimanche S50 2026. */
 export const PLAN_WINDOW = { start: "2026-11-23", weeks: 19 };
 
+/**
+ * Chaque risque désigne la ligne de planning qu'il concerne. Sans ce lien, le
+ * bandeau des risques restait entier quand on filtrait le planning sur une
+ * personne : on lisait des risques portant sur des tâches devenues invisibles.
+ */
 export const PLAN_RISKS = [
   {
-    id: "surcharge", label: "Surcharge Qualité +12 %", level: "Critique",
+    id: "surcharge", wbs: "3.2", label: "Surcharge Qualité +12 %", level: "Critique",
     detail: "Dépend de la disponibilité de l'équipe qualité.",
   },
   {
-    id: "pfmea", label: "PFMEA process en retard", level: "Majeur",
+    id: "pfmea", wbs: "3.2", label: "PFMEA process en retard", level: "Majeur",
     detail: "Conflit avec une validation en cours sur un autre projet.",
   },
   {
-    id: "freeze", label: "Impact sur Process Freeze +14 jours", level: "Majeur",
+    id: "freeze", wbs: "3.5", label: "Impact sur Process Freeze +14 jours", level: "Majeur",
     detail: "Risque lié à la disponibilité des outillages.",
   },
   {
-    id: "conflit", label: "Conflit de charge sur Noura Trabelsi", level: "Mineur",
+    id: "conflit", wbs: "3.3", label: "Conflit de charge sur Noura Trabelsi", level: "Mineur",
     detail: "Livraison attendue d'équipement de rivetage.",
   },
   {
-    id: "readiness", label: "Capacité laboratoire insuffisante en déc. 2027", level: "Faible",
+    id: "readiness", wbs: "4.2", label: "Capacité laboratoire insuffisante en déc. 2027", level: "Faible",
     detail: "Risque de saturation des équipements de mesure.",
   },
+];
+
+/** Statuts d'une ligne de planning — sert aussi à peupler les filtres. */
+export const PLAN_STATUSES: PlanRow["status"][] = [
+  "En retard",
+  "En cours",
+  "Non démarré",
+  "Terminé",
 ];
 
 /* --------------------------- Charge par service --------------------------- */
