@@ -27,6 +27,7 @@ import {
   STATUS_DATE,
   loadLevel,
   personCapacity,
+  personAvailable,
   personRatio,
   type PersonLoad,
 } from "@/lib/data";
@@ -92,7 +93,9 @@ export default function ChargeParPersonnePage() {
         ? personRatio(p)
         : sort.key === "projects"
           ? p.projects.length
-          : p[sort.key];
+          : sort.key === "available"
+            ? personAvailable(p)
+            : p[sort.key];
 
     return [...kept].sort((a, b) => {
       const va = value(a);
@@ -122,7 +125,7 @@ export default function ChargeParPersonnePage() {
       // Heures à replacer pour ramener chaque personne sous sa capacité.
       excess: over.reduce((n, p) => n + (p.load - personCapacity(p)), 0),
       // Seules les marges positives comptent : un déficit n'est pas une réserve.
-      spare: PEOPLE_LOAD.reduce((n, p) => n + Math.max(0, p.available), 0),
+      spare: PEOPLE_LOAD.reduce((n, p) => n + Math.max(0, personAvailable(p)), 0),
       multi: PEOPLE_LOAD.filter((p) => p.projects.length >= 3).length,
     };
   }, []);
@@ -345,16 +348,17 @@ export default function ChargeParPersonnePage() {
                     {/* Négatif = déficit à replacer, pas une marge. */}
                     <td
                       className={`px-2.5 py-2 tabular-nums ${
-                        p.available < 0
+                        personAvailable(p) < 0
                           ? "font-semibold text-[#D92D20]"
-                          : p.available === 0
+                          : personAvailable(p) === 0
                             ? "font-semibold text-[#E58A00]"
                             : "text-muted-foreground"
                       }`}
+                      title={`Capacité ${formatNumber(p.capacity)} h − charge ${formatNumber(p.load)} h`}
                     >
-                      {p.available < 0
-                        ? `− ${formatNumber(-p.available)} h`
-                        : `${formatNumber(p.available)} h`}
+                      {personAvailable(p) < 0
+                        ? `− ${formatNumber(-personAvailable(p))} h`
+                        : `${formatNumber(personAvailable(p))} h`}
                     </td>
                     <td className="py-2 pl-2.5 pr-3.5">
                       <span className="flex items-center gap-2">

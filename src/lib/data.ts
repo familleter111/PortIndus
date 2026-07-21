@@ -1228,6 +1228,13 @@ export interface TeamMember {
 /** Heures d'un équivalent temps plein sur la durée du projet (12 mois). */
 export const HOURS_PER_ETP = 1610;
 
+/**
+ * Capacité annuelle d'une personne à 100 %, en heures. Toute capacité de
+ * l'annuaire en découle au prorata du taux — sauf deux personnes en capacité
+ * réduite, qui portent la surcharge Qualité du scénario.
+ */
+export const BASE_CAPACITY = 1740;
+
 /** Équipe pluridisciplinaire permanente, présente à toutes les gates. */
 
 export interface ExtendedMember {
@@ -1320,11 +1327,15 @@ export interface PersonLoad {
   /** Heures affectées sur l'horizon. */
   load: number;
   /**
-   * Heures encore disponibles. Négative quand la personne est engagée au-delà
-   * de sa capacité : c'est le déficit à replacer, et c'est ce qui fait passer
-   * le ratio au-dessus de 100 %.
+   * Capacité sur l'horizon, en heures. Socle maison : 1740 h à 100 %, au
+   * prorata du taux. Deux personnes en ont moins — absence partielle — et
+   * c'est ce qui crée la surcharge Qualité du scénario.
+   *
+   * La disponibilité n'est pas stockée : elle se calcule. Stockée à côté de
+   * la charge, elle pouvait la contredire — augmenter la charge laissait la
+   * disponibilité intacte et gonflait la capacité en silence.
    */
-  available: number;
+  capacity: number;
 }
 
 /**
@@ -1334,30 +1345,30 @@ export interface PersonLoad {
  * ouvert ici se retrouve dans le planning et le suivi d'exécution.
  */
 export const PEOPLE_LOAD: PersonLoad[] = [
-  { name: "Noura Trabelsi", initials: "NT", fn: "Qualité", site: "Sousse", color: "#D92D20", rate: 100, projects: ["P-DEMO-001", "P-DEMO-003", "P-DEMO-006"], load: 1620, available: -60 },
-  { name: "Youssef Jaziri", initials: "YJ", fn: "Méthodes / Process", site: "Sousse", color: "#3976D3", rate: 100, projects: ["P-DEMO-001", "P-DEMO-007"], load: 1580, available: 160 },
-  { name: "Rachid Ben Amar", initials: "RB", fn: "Qualité", site: "Sousse", color: "#B42318", rate: 100, projects: ["P-DEMO-001", "P-DEMO-005"], load: 1740, available: -140 },
-  { name: "Karim Belhadj", initials: "KB", fn: "Industrialisation", site: "Sousse", color: "#2E7D32", rate: 80, projects: ["P-DEMO-001", "P-DEMO-005"], load: 1180, available: 212 },
-  { name: "Leïla Mansour", initials: "LM", fn: "Direction projet", site: "Sousse", color: "#0E7C52", rate: 100, projects: ["P-DEMO-001", "P-DEMO-004", "P-DEMO-009"], load: 1490, available: 250 },
-  { name: "Sofiane Haddad", initials: "SH", fn: "Qualité", site: "Tunis", color: "#7C3AED", rate: 80, projects: ["P-DEMO-003", "P-DEMO-009"], load: 1310, available: 82 },
-  { name: "Hassan Kacem", initials: "HK", fn: "Achats", site: "Tunis", color: "#8B5E9F", rate: 80, projects: ["P-DEMO-008"], load: 960, available: 432 },
-  { name: "Leila Mokrani", initials: "LM", fn: "Qualité", site: "Sousse", color: "#0891B2", rate: 60, projects: ["P-DEMO-002", "P-DEMO-010"], load: 810, available: 234 },
-  { name: "Yassine Gharbi", initials: "YG", fn: "Production", site: "Sousse", color: "#2C9C9C", rate: 100, projects: ["P-DEMO-002", "P-DEMO-006"], load: 1395, available: 345 },
-  { name: "Sonia Gharbi", initials: "SG", fn: "Achats", site: "Tunis", color: "#E58A00", rate: 60, projects: ["P-DEMO-004", "P-DEMO-010"], load: 690, available: 354 },
-  { name: "Mehdi Aloui", initials: "MA", fn: "Logistique", site: "Sousse", color: "#16A46B", rate: 60, projects: ["P-DEMO-002"], load: 640, available: 404 },
-  { name: "Rim Bouazizi", initials: "RB", fn: "R&D Produit", site: "Tunis", color: "#D97706", rate: 80, projects: ["P-DEMO-004", "P-DEMO-007"], load: 1240, available: 152 },
+  { name: "Noura Trabelsi", initials: "NT", fn: "Qualité", site: "Sousse", color: "#D92D20", rate: 100, projects: ["P-DEMO-001", "P-DEMO-003", "P-DEMO-006"], load: 1620, capacity: 1560 },
+  { name: "Youssef Jaziri", initials: "YJ", fn: "Méthodes / Process", site: "Sousse", color: "#3976D3", rate: 100, projects: ["P-DEMO-001", "P-DEMO-007"], load: 1580, capacity: 1740 },
+  { name: "Rachid Ben Amar", initials: "RB", fn: "Qualité", site: "Sousse", color: "#B42318", rate: 100, projects: ["P-DEMO-001", "P-DEMO-005"], load: 1740, capacity: 1600 },
+  { name: "Karim Belhadj", initials: "KB", fn: "Industrialisation", site: "Sousse", color: "#2E7D32", rate: 80, projects: ["P-DEMO-001", "P-DEMO-005"], load: 1180, capacity: 1392 },
+  { name: "Leïla Mansour", initials: "LM", fn: "Direction projet", site: "Sousse", color: "#0E7C52", rate: 100, projects: ["P-DEMO-001", "P-DEMO-004", "P-DEMO-009"], load: 1490, capacity: 1740 },
+  { name: "Sofiane Haddad", initials: "SH", fn: "Qualité", site: "Tunis", color: "#7C3AED", rate: 80, projects: ["P-DEMO-003", "P-DEMO-009"], load: 1310, capacity: 1392 },
+  { name: "Hassan Kacem", initials: "HK", fn: "Achats", site: "Tunis", color: "#8B5E9F", rate: 80, projects: ["P-DEMO-008"], load: 960, capacity: 1392 },
+  { name: "Leila Mokrani", initials: "LM", fn: "Qualité", site: "Sousse", color: "#0891B2", rate: 60, projects: ["P-DEMO-002", "P-DEMO-010"], load: 810, capacity: 1044 },
+  { name: "Yassine Gharbi", initials: "YG", fn: "Production", site: "Sousse", color: "#2C9C9C", rate: 100, projects: ["P-DEMO-002", "P-DEMO-006"], load: 1395, capacity: 1740 },
+  { name: "Sonia Gharbi", initials: "SG", fn: "Achats", site: "Tunis", color: "#E58A00", rate: 60, projects: ["P-DEMO-004", "P-DEMO-010"], load: 690, capacity: 1044 },
+  { name: "Mehdi Aloui", initials: "MA", fn: "Logistique", site: "Sousse", color: "#16A46B", rate: 60, projects: ["P-DEMO-002"], load: 640, capacity: 1044 },
+  { name: "Rim Bouazizi", initials: "RB", fn: "R&D Produit", site: "Tunis", color: "#D97706", rate: 80, projects: ["P-DEMO-004", "P-DEMO-007"], load: 1240, capacity: 1392 },
   /*
    * Ces six-là pilotent un service dans la vue charge mais ne figuraient dans
    * aucun annuaire : impossible de les choisir dans une équipe, et leur
    * fonction n'était déduite que du service qui les portait. Leur charge suit
    * leur profil mensuel — un pilote qui dépasse la capacité a un solde négatif.
    */
-  { name: "Hatem Ben Ali", initials: "HB", fn: "Direction projet", site: "Sousse", color: "#3976D3", rate: 100, projects: ["P-DEMO-002"], load: 1180, available: 430 },
-  { name: "Anis Gharbi", initials: "AG", fn: "R&D Produit", site: "Tunis", color: "#0891B2", rate: 100, projects: ["P-DEMO-002"], load: 1520, available: 90 },
-  { name: "Ines Chaabane", initials: "IC", fn: "Qualité", site: "Tunis", color: "#7C3AED", rate: 100, projects: ["P-DEMO-002", "P-DEMO-008"], load: 1560, available: 50 },
-  { name: "Meriem Khelifi", initials: "MK", fn: "Production", site: "Sousse", color: "#475467", rate: 100, projects: ["P-DEMO-001", "P-DEMO-002"], load: 1690, available: -80 },
-  { name: "Slim Toumi", initials: "ST", fn: "Production", site: "Sousse", color: "#E58A00", rate: 100, projects: ["P-DEMO-002", "P-DEMO-003"], load: 1745, available: -135 },
-  { name: "Dorra Ben Amor", initials: "DA", fn: "Production", site: "Bizerte", color: "#2E7D32", rate: 80, projects: ["P-DEMO-003"], load: 1210, available: 178 },
+  { name: "Hatem Ben Ali", initials: "HB", fn: "Direction projet", site: "Sousse", color: "#3976D3", rate: 100, projects: ["P-DEMO-002"], load: 1180, capacity: 1740 },
+  { name: "Anis Gharbi", initials: "AG", fn: "R&D Produit", site: "Tunis", color: "#0891B2", rate: 100, projects: ["P-DEMO-002"], load: 1520, capacity: 1740 },
+  { name: "Ines Chaabane", initials: "IC", fn: "Qualité", site: "Tunis", color: "#7C3AED", rate: 100, projects: ["P-DEMO-002", "P-DEMO-008"], load: 1560, capacity: 1740 },
+  { name: "Meriem Khelifi", initials: "MK", fn: "Production", site: "Sousse", color: "#475467", rate: 100, projects: ["P-DEMO-001", "P-DEMO-002"], load: 1690, capacity: 1740 },
+  { name: "Slim Toumi", initials: "ST", fn: "Production", site: "Sousse", color: "#E58A00", rate: 100, projects: ["P-DEMO-002", "P-DEMO-003"], load: 1745, capacity: 1740 },
+  { name: "Dorra Ben Amor", initials: "DA", fn: "Production", site: "Bizerte", color: "#2E7D32", rate: 80, projects: ["P-DEMO-003"], load: 1210, capacity: 1392 },
 ];
 
 /** L'annuaire fait foi pour la fonction, le site et la couleur d'une personne. */
@@ -1392,11 +1403,16 @@ export const CORE_TEAM: TeamMember[] = (
  * un ratio à la main permettrait qu'il contredise les deux colonnes voisines.
  */
 export function personRatio(p: PersonLoad): number {
-  return Math.round((p.load / (p.load + p.available)) * 100);
+  return p.capacity > 0 ? Math.round((p.load / p.capacity) * 100) : 0;
 }
 
 export function personCapacity(p: PersonLoad): number {
-  return p.load + p.available;
+  return p.capacity;
+}
+
+/** Heures restantes — négatif = engagement au-delà de la capacité. */
+export function personAvailable(p: PersonLoad): number {
+  return p.capacity - p.load;
 }
 
 /** Seuils partagés par le tableau et les indicateurs. */

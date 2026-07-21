@@ -41,6 +41,7 @@ import {
   FUNCTION_COLOR,
   HOURS_PER_ETP,
   PEOPLE_LOAD,
+  personAvailable,
   type ExtendedMember,
   type TeamMember,
 } from "@/lib/data";
@@ -479,15 +480,16 @@ function AddCoreMemberModal({
    * interdit — on peut décider de replanifier — mais doit se voir au moment du
    * choix, pas à l'étape suivante.
    */
-  const over = person ? hours - person.available : 0;
+  const over = person ? hours - personAvailable(person) : 0;
 
   const options: PickOption[] = PEOPLE_LOAD.map((p) => ({
     name: p.name,
     initials: p.initials,
     color: p.color,
     detail: `${p.fn} · ${p.site}`,
-    hint: `${formatNumber(p.available)} h dispo.`,
-    hintTone: p.available < 0 ? "red" : p.available < 200 ? "amber" : "green",
+    hint: `${formatNumber(personAvailable(p))} h dispo.`,
+    hintTone:
+      personAvailable(p) < 0 ? "red" : personAvailable(p) < 200 ? "amber" : "green",
     taken: taken.includes(p.name),
   }));
 

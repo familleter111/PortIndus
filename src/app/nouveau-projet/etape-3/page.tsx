@@ -30,6 +30,7 @@ import {
   Select,
 } from "@/components/ui/primitives";
 import {
+  BASE_CAPACITY,
   FUNCTIONS,
   FUNCTION_COLOR,
   NEW_PROJECT,
@@ -194,24 +195,39 @@ interface FnRow {
 interface ResRow {
   id: string;
   name: string;
-  fn: string;
+  fn: FunctionName;
   color: string;
   rate: number;
   parallel: number;
   load: number;
-  available: number;
+  /**
+   * Capacité en heures. C'est elle l'invariant : la disponibilité s'en déduit
+   * (capacité − charge). Saisir les deux permettait d'augmenter la charge sans
+   * entamer la disponibilité, et la capacité enflait sans que rien ne le dise.
+   */
+  capacity: number;
+  /** Capacité et taux de départ : le taux rejoue dessus, sans dérive cumulée. */
+  seedCapacity: number;
+  seedRate: number;
+}
+
+/** Heures restantes — négatif = engagement au-delà de la capacité. */
+function availableOf(r: ResRow): number {
+  return r.capacity - r.load;
 }
 
 /** Les ressources proposées viennent de la charge nominative déjà suivie. */
 const RESOURCE_SEED: ResRow[] = PEOPLE_LOAD.slice(0, 6).map((p, i) => ({
   id: `r${i}`,
   name: p.name,
-  fn: p.fn,
+  fn: p.fn as FunctionName,
   color: p.color,
   rate: p.rate,
   parallel: p.projects.length,
   load: p.load,
-  available: p.available,
+  capacity: p.capacity,
+  seedCapacity: p.capacity,
+  seedRate: p.rate,
 }));
 
 export default function Etape3Page() {
@@ -241,7 +257,7 @@ export default function Etape3Page() {
           fn,
           color: FUNCTION_COLOR[fn],
           load: rows.reduce((n, r) => n + r.load, 0),
-          capacity: rows.reduce((n, r) => n + r.load + r.available, 0),
+          capacity: rows.reduce((n, r) => n + r.capacity, 0),
         };
       }).filter((f) => f.capacity > 0 || f.load > 0),
     [resources],
@@ -311,12 +327,15 @@ export default function Etape3Page() {
       {
         id: `r${Date.now()}`,
         name: "",
-        fn: functions[0]?.fn ?? "Qualité",
-        color: functions[0]?.color ?? "#667085",
+        fn: "Qualité" as FunctionName,
+        color: FUNCTION_COLOR["Qualité"],
         rate: 80,
         parallel: 1,
         load: 800,
-        available: 400,
+        // Capacité au prorata du socle maison, comme toute personne de l'annuaire.
+        capacity: Math.round((BASE_CAPACITY * 80) / 100),
+        seedCapacity: Math.round((BASE_CAPACITY * 80) / 100),
+        seedRate: 80,
       },
     ]);
 
@@ -545,7 +564,7 @@ export default function Etape3Page() {
               {resources.map((r) => {
                 // Capacité = charge + disponibilité : les trois colonnes ne
                 // peuvent pas se contredire, quel que soit ce qu'on saisit.
-                const capacity = r.load + r.available;
+                const capacity = r.capacity;
                 const ratio = ratioOf(r.load, capacity);
                 return (
                   <tr key={r.id} className="border-b border-border/60 last:border-0">
@@ -572,7 +591,7 @@ export default function Etape3Page() {
                         className="flex items-center gap-1.5 text-[11px] text-foreground"
                         title={`${r.name} relève de la fonction ${r.fn} dans l'annuaire`}
                       >
-                        <Dot color={r.color} />
+                        <Dot color={FUNCTION_COLOR[r.fn]} />
                         <span className="truncate">{r.fn}</span>
                       </span>
                     </td>
@@ -580,7 +599,17 @@ export default function Etape3Page() {
                       <NumCell
                         value={r.rate}
                         max={100}
-                        onChange={(n) => patchRes(r.id, { rate: n })}
+                        onChange={(n) =>
+                          // Le taux est contractuel : il redimensionne la
+                          // capacité, jamais la charge déjà engagée.
+                          patchRes(r.id, {
+                            rate: n,
+                            capacity:
+                              r.seedRate > 0
+                                ? Math.round((r.seedCapacity * n) / r.seedRate)
+                                : r.capacity,
+                          })
+                        }
                         suffix="%"
                         className="w-12"
                       />
@@ -601,13 +630,15 @@ export default function Etape3Page() {
                       />
                     </td>
                     <td className="px-2.5 py-[6px]">
-                      <NumCell
-                        value={r.available}
-                        min={-9999}
-                        onChange={(n) => patchRes(r.id, { available: n })}
-                        suffix="h"
-                        className={r.available < 0 ? "font-semibold text-[#D92D20]" : undefined}
-                      />
+                      {/* Résultat, pas une saisie : capacité − charge. */}
+                      <span
+                        className={`tabular-nums ${
+                          availableOf(r) < 0 ? "font-semibold text-[#D92D20]" : "text-foreground"
+                        }`}
+                        title={`Capacité ${formatNumber(r.capacity)} h − charge ${formatNumber(r.load)} h`}
+                      >
+                        {formatNumber(availableOf(r))} <span className="text-muted-foreground">h</span>
+                      </span>
                     </td>
                     <td className="px-2.5 py-[6px]">
                       <RatioCell ratio={ratio} barClass="w-24" />
