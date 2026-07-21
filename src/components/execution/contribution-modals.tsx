@@ -2,13 +2,17 @@
 
 import * as React from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   FileText,
   Layers,
+  ListChecks,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -30,8 +34,10 @@ import {
 import {
   APQP_GATES,
   CONTRIB_LEVELS,
+  DEFAULT_CONTRIB_STEPS,
   GATE_DELIVERABLES,
   LEVEL_COLOR,
+  MAX_CONTRIB_STEPS,
   contribCountFor,
   deliverableById,
   deliverableStatus,
@@ -44,6 +50,7 @@ import {
   type Contribution,
   type StepStatus,
 } from "@/lib/data";
+import { cn } from "@/lib/utils";
 
 const STEP_STATUSES: StepStatus[] = ["À faire", "En cours", "Terminée"];
 
@@ -248,6 +255,8 @@ export interface NewContribution {
   /** Format jj/mm/aaaa, comme le reste des dates du modèle. */
   dueDate: string;
   expected: string;
+  /** Intitulés des étapes, dans l'ordre voulu — modifiables par l'utilisateur. */
+  steps: string[];
 }
 
 /** "2027-01-09" → "09/01/2027" : l'inverse de ce que fait `DateInput`. */
@@ -280,6 +289,177 @@ const DELIVERABLE_DOT: Record<string, string> = {
   "En retard": "#D92D20",
 };
 
+/**
+ * Éditeur des étapes de réalisation. Elles étaient imposées : on ne pouvait
+ * que les subir. Les valeurs par défaut restent proposées — c'est le cas
+ * courant — mais tout est modifiable avant création.
+ */
+function StepsEditor({
+  steps,
+  onChange,
+}: {
+  steps: string[];
+  onChange: (steps: string[]) => void;
+}) {
+  const pristine =
+    steps.length === DEFAULT_CONTRIB_STEPS.length &&
+    steps.every((s, i) => s === DEFAULT_CONTRIB_STEPS[i]);
+  const full = steps.length >= MAX_CONTRIB_STEPS;
+
+  /** Un champ par ligne : sert à faire suivre le focus à l'étape déplacée. */
+  const inputs = React.useRef<(HTMLInputElement | null)[]>([]);
+
+  const rename = (i: number, value: string) =>
+    onChange(steps.map((s, k) => (k === i ? value : s)));
+  const remove = (i: number) => onChange(steps.filter((_, k) => k !== i));
+  const add = () => onChange([...steps, ""]);
+  /** Échange avec la voisine : l'ordre des étapes est celui de l'exécution. */
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= steps.length) return;
+    const next = [...steps];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+    /*
+     * Les lignes sont identifiées par leur rang : après l'échange, le bouton
+     * resté sous le curseur commande l'autre étape. Sans ce rappel de focus,
+     * cliquer deux fois « descendre » ne descendrait pas deux fois la même
+     * étape. On vise le champ, toujours actif, et non le bouton qui peut
+     * devenir désactivé en bout de liste.
+     */
+    requestAnimationFrame(() => inputs.current[j]?.focus());
+  };
+
+  return (
+    <Card className="p-3">
+      <div className="flex items-center gap-2">
+        <ListChecks className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <p className="text-[12px] font-semibold text-foreground">Étapes de réalisation</p>
+        <span className="rounded-full bg-muted px-1.5 text-[10px] font-bold tabular-nums text-muted-foreground">
+          {steps.length}
+        </span>
+        {!pristine ? (
+          <button
+            type="button"
+            onClick={() => onChange([...DEFAULT_CONTRIB_STEPS])}
+            className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Rétablir les étapes proposées
+          </button>
+        ) : null}
+      </div>
+      <p className="mt-0.5 text-[10px] text-muted-foreground">
+        Pré-remplies à partir du modèle : renommez-les, réordonnez-les, supprimez-en ou
+        ajoutez les vôtres. Elles seront créées au statut « À faire ».
+      </p>
+
+      {steps.length === 0 ? (
+        <p className="mt-2 rounded-lg border border-dashed border-input px-3 py-2.5 text-center text-[11px] text-muted-foreground">
+          Aucune étape — la contribution se suivra au seul avancement en pourcentage.
+        </p>
+      ) : (
+        <ol className="mt-2 space-y-1.5">
+          {steps.map((s, i) => (
+            <li key={i} className="flex items-center gap-1.5">
+              <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[#98A2B3] text-[9px] font-bold text-white">
+                {i + 1}
+              </span>
+              <Input
+                ref={(el) => {
+                  inputs.current[i] = el;
+                }}
+                value={s}
+                onChange={(e) => rename(i, e.target.value)}
+                placeholder="Intitulé de l'étape…"
+                aria-label={`Étape ${i + 1}`}
+                className={cn(
+                  "h-8 flex-1 text-[11px]",
+                  // Une étape vide bloque la création : on le montre ici plutôt
+                  // que de laisser chercher dans le bouton désactivé.
+                  !s.trim() && "border-[#F2A9A3] bg-[#FEF6F5]",
+                )}
+              />
+              <span className="flex shrink-0 items-center">
+                <IconBtn
+                  label={`Monter l'étape ${i + 1}`}
+                  disabled={i === 0}
+                  onClick={() => move(i, -1)}
+                >
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </IconBtn>
+                <IconBtn
+                  label={`Descendre l'étape ${i + 1}`}
+                  disabled={i === steps.length - 1}
+                  onClick={() => move(i, 1)}
+                >
+                  <ArrowDown className="h-3.5 w-3.5" />
+                </IconBtn>
+                <IconBtn
+                  label={`Supprimer l'étape ${i + 1}`}
+                  danger
+                  onClick={() => remove(i)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </IconBtn>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <button
+        type="button"
+        onClick={add}
+        disabled={full}
+        title={full ? `${MAX_CONTRIB_STEPS} étapes au maximum` : undefined}
+        className="mt-2 flex items-center gap-1.5 rounded-lg border border-dashed border-input px-2.5 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:border-[#16A46B] hover:bg-[#F4FDF8] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input disabled:hover:bg-transparent"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Ajouter une étape
+        {full ? (
+          <span className="text-muted-foreground">— {MAX_CONTRIB_STEPS} au maximum</span>
+        ) : null}
+      </button>
+    </Card>
+  );
+}
+
+/** Bouton d'action d'une ligne d'étape. */
+function IconBtn({
+  label,
+  onClick,
+  disabled,
+  danger,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "rounded-md p-1 text-muted-foreground transition-colors disabled:opacity-30",
+        disabled
+          ? "cursor-not-allowed"
+          : danger
+            ? "hover:bg-[#FEF3F2] hover:text-[#D92D20]"
+            : "hover:bg-muted hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function CreateContributionModal({
   open,
   owners,
@@ -309,6 +489,7 @@ export function CreateContributionModal({
       priority: "Moyenne",
       dueDate: "",
       expected: "",
+      steps: [...DEFAULT_CONTRIB_STEPS],
     }),
     [owners, firstOpen],
   );
@@ -341,8 +522,14 @@ export function CreateContributionModal({
   // Le rattachement fait partie de ce qui est obligatoire : une sous-tâche sans
   // tâche parente n'a pas de place dans l'arborescence.
   const needsParent = form.level === "Sous-tâche";
+  // Une étape sans intitulé serait créée vide dans le suivi : on la refuse ici.
+  const blankStep = form.steps.some((s) => !s.trim());
   const missing =
-    !form.title.trim() || !form.dueDate || !form.deliverableId || (needsParent && !form.parentId);
+    !form.title.trim() ||
+    !form.dueDate ||
+    !form.deliverableId ||
+    (needsParent && !form.parentId) ||
+    blankStep;
 
   const missingLabel = !form.title.trim()
     ? "L'intitulé est obligatoire"
@@ -350,7 +537,9 @@ export function CreateContributionModal({
       ? "La date cible est obligatoire"
       : needsParent && !form.parentId
         ? "Une sous-tâche doit être rattachée à une tâche"
-        : undefined;
+        : blankStep
+          ? "Une étape est sans intitulé : nommez-la ou supprimez-la"
+          : undefined;
 
   return (
     <Modal
@@ -558,29 +747,17 @@ export function CreateContributionModal({
           </Field>
         </div>
 
-        <Card className="bg-muted p-3">
-          <p className="text-[11px] font-semibold text-foreground">
-            Étapes de réalisation créées automatiquement
-          </p>
-          <ol className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5">
-            {[
-              "Vérifier les causes critiques",
-              "Mettre à jour la cotation de risque",
-              "Charger la preuve de revue",
-              "Soumettre la mise à jour",
-            ].map((s, i) => (
-              <li key={s} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <span className="flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full bg-[#98A2B3] text-[8px] font-bold text-white">
-                  {i + 1}
-                </span>
-                {s}
-              </li>
-            ))}
-          </ol>
-        </Card>
+        <StepsEditor steps={form.steps} onChange={(steps) => set("steps", steps)} />
 
         <div className="flex items-center gap-2 border-t border-border pt-3">
-          {/* Le chemin complet, tel qu'il sera enregistré. */}
+          {/* Ce qui bloque, sinon le chemin complet tel qu'il sera enregistré.
+              Le `title` d'un bouton désactivé n'apparaît pas partout : la
+              raison doit être lisible à l'écran. */}
+          {missingLabel ? (
+            <p className="min-w-0 flex-1 truncate text-[10px] font-medium text-[#B42318]">
+              {missingLabel}
+            </p>
+          ) : (
           <p className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">
             {deliverable ? (
               <>
@@ -600,12 +777,19 @@ export function CreateContributionModal({
               </>
             ) : null}
           </p>
+          )}
           <Button onClick={onClose}>Annuler</Button>
           <Button
             variant="primary"
             disabled={missing}
             title={missingLabel}
-            onClick={() => onCreate({ ...form, title: form.title.trim() })}
+            onClick={() =>
+              onCreate({
+                ...form,
+                title: form.title.trim(),
+                steps: form.steps.map((s) => s.trim()),
+              })
+            }
           >
             <Plus className="h-4 w-4" />
             Créer la contribution
@@ -704,6 +888,8 @@ export function UpdateModal({
         </div>
 
         {/* ------------------------------------------------------- Étapes */}
+        {/* Une contribution peut être créée sans étape : pas de titre orphelin. */}
+        {contribution.steps.length ? (
         <div>
           <p className="mb-1.5 text-[12px] font-semibold text-foreground">
             Étapes de réalisation
@@ -734,6 +920,7 @@ export function UpdateModal({
             ))}
           </div>
         </div>
+        ) : null}
 
         <RequiredComment
           label="Commentaire d'exécution"

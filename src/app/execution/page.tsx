@@ -196,7 +196,12 @@ export default function ExecutionPage() {
       status: "En cours",
       progress: 25,
       steps,
-      ...log(c, "start", ["Contribution démarrée", "Étape 1 terminée"]),
+      // Sans étape, l'historique ne doit pas en annoncer une de terminée.
+      ...log(
+        c,
+        "start",
+        c.steps.length ? ["Contribution démarrée", "Étape 1 terminée"] : ["Contribution démarrée"],
+      ),
     });
     setBanner({
       tone: "blue",
@@ -330,12 +335,13 @@ export default function ExecutionPage() {
         expected: n.expected,
         comment: "",
         contributors: [{ name: n.owner, initials: owner?.ownerInitials ?? getInitials(n.owner) }],
-        steps: [
-          { n: 1, label: "Vérifier les causes critiques", status: "À faire" },
-          { n: 2, label: "Mettre à jour la cotation de risque", status: "À faire" },
-          { n: 3, label: "Charger la preuve de revue", status: "À faire" },
-          { n: 4, label: "Soumettre la mise à jour", status: "À faire" },
-        ],
+        // Les étapes viennent de la modale : elles y sont pré-remplies mais
+        // l'utilisateur a pu les renommer, les réordonner ou en ajouter.
+        steps: n.steps.map((label, i) => ({
+          n: i + 1,
+          label,
+          status: "À faire" as const,
+        })),
         evidence: [],
         history: [
           {
@@ -1264,7 +1270,12 @@ function DetailView({
           </Panel>
 
           <Panel title="Étapes de réalisation" className="shrink-0">
-            <ul className="overflow-hidden rounded-lg border border-border">
+            {c.steps.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border px-3 py-2.5 text-center text-[11px] text-muted-foreground">
+                Aucune étape définie — le suivi se fait à l&apos;avancement.
+              </p>
+            ) : null}
+            <ul className="overflow-hidden rounded-lg border border-border empty:border-0">
               {c.steps.map((s) => (
                 <li
                   key={s.n}

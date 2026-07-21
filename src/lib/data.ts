@@ -589,6 +589,21 @@ export interface ContribStep {
   status: StepStatus;
 }
 
+/**
+ * Étapes proposées à la création d'une contribution. Ce ne sont que des
+ * valeurs de départ : la modale laisse les renommer, les réordonner, les
+ * supprimer ou en ajouter.
+ */
+export const DEFAULT_CONTRIB_STEPS = [
+  "Vérifier les causes critiques",
+  "Mettre à jour la cotation de risque",
+  "Charger la preuve de revue",
+  "Soumettre la mise à jour",
+];
+
+/** Au-delà, la liste devient illisible dans la modale. */
+export const MAX_CONTRIB_STEPS = 8;
+
 export interface ContribEvidence {
   id: string;
   file: string;

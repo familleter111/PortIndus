@@ -221,10 +221,12 @@ export function Field({
 const CONTROL =
   "h-9 w-full rounded-lg border border-input bg-white px-2.5 text-[12px] text-foreground placeholder:text-muted-foreground focus:border-[#16A46B] focus:outline-none focus:ring-1 focus:ring-[#16A46B]";
 
+// `ComponentPropsWithRef` : sous React 19 `ref` est une prop ordinaire, et
+// l'éditeur d'étapes s'en sert pour faire suivre le focus à la ligne déplacée.
 export function Input({
   className,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
+}: React.ComponentPropsWithRef<"input">) {
   return <input className={cn(CONTROL, className)} {...props} />;
 }
 
@@ -291,8 +293,13 @@ export function Select({
   children,
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  // Le chevron vient de `.select-chevron` : il signale que le champ ouvre une
+  // liste, ce que `appearance-none` faisait disparaître.
   return (
-    <select className={cn(CONTROL, "appearance-none pr-7", className)} {...props}>
+    <select
+      className={cn(CONTROL, "select-chevron cursor-pointer appearance-none pr-7", className)}
+      {...props}
+    >
       {children}
     </select>
   );

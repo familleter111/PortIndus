@@ -101,6 +101,23 @@
     display: none;
   }
 
+  /*
+   * Listes déroulantes : `appearance-none` supprime la flèche native, dont le
+   * dessin varie d'un système à l'autre. Ce chevron la remplace — sans lui,
+   * une liste est indiscernable d'un champ de saisie. Peint en fond plutôt
+   * qu'en élément frère : le `<select>` reste seul dans le flux et aucune des
+   * mises en page qui l'utilisent n'est affectée.
+   */
+  .select-chevron {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 0.8rem;
+  }
+  .select-chevron:disabled {
+    opacity: 0.55;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;

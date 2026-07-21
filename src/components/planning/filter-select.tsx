@@ -75,7 +75,11 @@ export function FilterSelect({
           <span className={cn("font-semibold", !active && "text-foreground")}>
             {selected ? selected.short ?? selected.label : allLabel}
           </span>
-          {!active ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : null}
+          {/* Le chevron reste même filtre posé : c'est ce qui dit que le champ
+              ouvre une liste, l'information vaut aussi une fois choisi. */}
+          <ChevronDown
+            className={cn("h-3.5 w-3.5", active ? "text-[#0E7C52]/60" : "text-muted-foreground")}
+          />
         </button>
         {/* Actif : la chevron laisse place à une croix, on retire le filtre sans
             rouvrir le menu. */}
