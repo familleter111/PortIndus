@@ -178,9 +178,25 @@ const fr1 = (n: number) => n.toFixed(1).replace(".", ",");
 /** 19468 → « 19 468 h » (espace fine insécable, convention française). */
 const formatHours = (n: number) => `${n.toLocaleString("fr-FR").replace(/ | /g, " ")} h`;
 
+/**
+ * Avancement du portefeuille, pondéré par la charge, avec son écriture. Les
+ * écrans « Portefeuille » et « Projets » le lisent ici : une moyenne simple
+ * d'un côté et une moyenne pondérée de l'autre affichaient deux chiffres
+ * différents (44 % contre 39,5 %) pour la même grandeur.
+ */
+const progressActual = weightedAvg((p) => p.actual);
+const progressPlanned = weightedAvg((p) => p.planned);
+
+export const PORTFOLIO_PROGRESS = {
+  actual: progressActual,
+  planned: progressPlanned,
+  actualLabel: `${fr1(progressActual)} %`,
+  plannedLabel: `${fr1(progressPlanned)} %`,
+};
+
 export const PORTFOLIO_KPIS = [
-  { label: "Avancement portefeuille réel", value: `${fr1(weightedAvg((p) => p.actual))} %`, tone: "ink" as const, icon: "trend" },
-  { label: "Avancement portefeuille planifié", value: `${fr1(weightedAvg((p) => p.planned))} %`, tone: "ink" as const, icon: "target" },
+  { label: "Avancement portefeuille réel", value: PORTFOLIO_PROGRESS.actualLabel, tone: "ink" as const, icon: "trend" },
+  { label: "Avancement portefeuille planifié", value: PORTFOLIO_PROGRESS.plannedLabel, tone: "ink" as const, icon: "target" },
   { label: "SPI portefeuille", value: weightedAvg((p) => p.spi).toFixed(3).replace(".", ","), tone: "ink" as const, icon: "gauge" },
   { label: "Projets rouges", value: String(PROJECTS.filter((p) => p.health === "red").length), tone: "red" as const, icon: "flag" },
   { label: "Actions en retard", value: String(PROJECTS.reduce((n, p) => n + p.overdueActions, 0)), tone: "red" as const, icon: "clock" },
@@ -247,9 +263,29 @@ export const PORTFOLIO_TOTALS = {
     PROJECTS.reduce((n, p) => n + p.readiness, 0) / PROJECTS.length,
   ),
   avgSpi: PROJECTS.reduce((n, p) => n + p.spi, 0) / PROJECTS.length,
-  avgPlanned: Math.round(PROJECTS.reduce((n, p) => n + p.planned, 0) / PROJECTS.length),
-  avgActual: Math.round(PROJECTS.reduce((n, p) => n + p.actual, 0) / PROJECTS.length),
 };
+
+/**
+ * Périmètre d'un rapport de portefeuille, nommé. « Tous clients » et « Toutes
+ * gates » ne disaient rien du site : on affiche les donneurs d'ordre réellement
+ * suivis et l'amplitude de gates couverte, déduits de PROJECTS.
+ */
+export const PORTFOLIO_CLIENTS = Array.from(new Set(PROJECTS.map((p) => p.client)));
+
+/** « OEM Alpha, Beta, Gamma, Delta » — le préfixe commun n'est écrit qu'une fois. */
+export const PORTFOLIO_CLIENTS_LABEL = (() => {
+  const prefix = PORTFOLIO_CLIENTS[0]?.split(" ")[0] ?? "";
+  const shared = prefix !== "" && PORTFOLIO_CLIENTS.every((c) => c.startsWith(`${prefix} `));
+  return shared
+    ? PORTFOLIO_CLIENTS.map((c, i) => (i === 0 ? c : c.slice(prefix.length + 1))).join(", ")
+    : PORTFOLIO_CLIENTS.join(", ");
+})();
+
+/** « G1 → G5 · 10 projets » — les gates que le portefeuille a devant lui. */
+export const PORTFOLIO_GATES_LABEL = (() => {
+  const indexes = PROJECTS.map((p) => p.gateIndex);
+  return `G${Math.min(...indexes)} → G${Math.max(...indexes)} · ${PROJECTS.length} projets`;
+})();
 
 /** Répartition par phase, pour la vue liste. */
 export const PHASE_SPLIT = Array.from(
@@ -2351,7 +2387,8 @@ export interface ReportDoc {
 export const REPORT_LIBRARY: ReportDoc[] = [
   {
     id: "R-2026-014", name: "Portefeuille APQP — Vue direction — T4 2026",
-    template: "direction", scopeId: "PORTFOLIO", client: "Tous clients", gate: "—",
+    template: "direction", scopeId: "PORTFOLIO", client: PORTFOLIO_CLIENTS_LABEL,
+    gate: PORTFOLIO_GATES_LABEL,
     version: "V2.0", status: "Exporté PDF", generatedAt: "15/12/2026 09:42",
     editedAt: "15/12/2026 10:15", author: "Leïla Mansour", genSeconds: 158,
     history: [
@@ -2411,7 +2448,8 @@ export const REPORT_LIBRARY: ReportDoc[] = [
   },
   {
     id: "R-2026-008", name: "Portefeuille APQP — Risques et actions",
-    template: "direction", scopeId: "PORTFOLIO", client: "Tous clients", gate: "—",
+    template: "direction", scopeId: "PORTFOLIO", client: PORTFOLIO_CLIENTS_LABEL,
+    gate: PORTFOLIO_GATES_LABEL,
     version: "V1.0", status: "Généré", generatedAt: "04/12/2026 16:20",
     editedAt: "04/12/2026 16:45", author: "Leïla Mansour", genSeconds: 148,
     history: [
@@ -2447,7 +2485,8 @@ export const REPORT_LIBRARY: ReportDoc[] = [
   },
   {
     id: "R-2026-004", name: "Portefeuille APQP — Vue direction — T3 2026",
-    template: "direction", scopeId: "PORTFOLIO", client: "Tous clients", gate: "—",
+    template: "direction", scopeId: "PORTFOLIO", client: PORTFOLIO_CLIENTS_LABEL,
+    gate: PORTFOLIO_GATES_LABEL,
     version: "V1.0", status: "Exporté PDF", generatedAt: "19/11/2026 14:12",
     editedAt: "19/11/2026 14:58", author: "Leïla Mansour", genSeconds: 155,
     history: [

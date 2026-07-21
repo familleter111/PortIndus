@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/primitives";
 import {
   PHASE_SPLIT,
+  PORTFOLIO_PROGRESS,
   PORTFOLIO_TOTALS,
   PROJECTS,
   type Health,
@@ -139,8 +140,8 @@ export default function ProjetsPage() {
           <KpiCard
             icon={<TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />}
             label="Avancement moyen"
-            value={`${PORTFOLIO_TOTALS.avgActual} %`}
-            note={`vs plan ${PORTFOLIO_TOTALS.avgPlanned} %`}
+            value={PORTFOLIO_PROGRESS.actualLabel}
+            note={`vs plan ${PORTFOLIO_PROGRESS.plannedLabel}`}
           />
           <KpiCard
             icon={<Gauge className="h-3.5 w-3.5 text-muted-foreground" />}

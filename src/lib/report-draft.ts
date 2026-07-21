@@ -4,6 +4,7 @@ import * as React from "react";
 
 import {
   CURRENT_USER,
+  PORTFOLIO_CLIENTS_LABEL,
   PROJECTS,
   REPORT_LIBRARY,
   STATUS_DATE,
@@ -73,7 +74,7 @@ export function docFromDraft(draft: ReportDraft): ReportDoc {
     name: draft.params.name,
     template: spec.id,
     scopeId: draft.params.scopeId,
-    client: project?.client ?? "Tous clients",
+    client: project?.client ?? PORTFOLIO_CLIENTS_LABEL,
     gate: draft.params.gate,
     version: draft.version,
     status: draft.status,

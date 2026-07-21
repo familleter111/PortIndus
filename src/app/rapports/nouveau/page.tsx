@@ -28,6 +28,9 @@ import {
 } from "@/components/ui/primitives";
 import {
   APQP_GATES,
+  PORTFOLIO_CLIENTS,
+  PORTFOLIO_CLIENTS_LABEL,
+  PORTFOLIO_GATES_LABEL,
   PROJECTS,
   REPORT_CONFIDENTIALITY,
   REPORT_LANGUAGES,
@@ -53,7 +56,18 @@ export default function NouveauRapportPage() {
   const portfolio = spec.scope === "portefeuille";
 
   const project = PROJECTS.find((p) => p.id === params.scopeId);
-  const client = portfolio ? "Tous clients" : (project?.client ?? "—");
+  const client = portfolio ? PORTFOLIO_CLIENTS_LABEL : (project?.client ?? "—");
+
+  /*
+   * Un brouillon enregistré avant ce libellé porte encore « — » comme gate :
+   * on le remet au périmètre réel, sinon le champ afficherait une valeur qui
+   * n'est plus dans la liste.
+   */
+  React.useEffect(() => {
+    if (portfolio && params.gate !== PORTFOLIO_GATES_LABEL) {
+      patchParams({ gate: PORTFOLIO_GATES_LABEL });
+    }
+  }, [portfolio, params.gate, patchParams]);
 
   /*
    * Le nom suit le périmètre tant qu'il n'a pas été retouché à la main. Sans
@@ -182,7 +196,16 @@ export default function NouveauRapportPage() {
 
                   <Field label="Client">
                     {/* Déduit du projet : le saisir permettrait de contredire la fiche. */}
-                    <Input value={client} readOnly disabled title="Déduit du projet choisi" />
+                    <Input
+                      value={client}
+                      readOnly
+                      disabled
+                      title={
+                        portfolio
+                          ? `Donneurs d'ordre couverts : ${PORTFOLIO_CLIENTS.join(", ")}`
+                          : "Déduit du projet choisi"
+                      }
+                    />
                   </Field>
 
                   <Field label="Gate / Phase" required>
@@ -192,7 +215,7 @@ export default function NouveauRapportPage() {
                       onChange={(e) => set({ gate: e.target.value })}
                     >
                       {portfolio ? (
-                        <option value="—">Toutes gates</option>
+                        <option value={PORTFOLIO_GATES_LABEL}>{PORTFOLIO_GATES_LABEL}</option>
                       ) : (
                         gatesForProject().map((g) => (
                           <option key={g.id} value={g.id}>
