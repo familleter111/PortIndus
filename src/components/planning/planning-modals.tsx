@@ -3,6 +3,9 @@
 import * as React from "react";
 import {
   AlertTriangle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
   ArrowRight,
   CalendarDays,
   CheckCircle2,
@@ -34,7 +37,8 @@ import {
   Select,
   Textarea,
 } from "@/components/ui/primitives";
-import { RESOURCE_CONFLICT, SIMULATION } from "@/lib/data";
+import { RESOURCE_CONFLICTS, SIMULATION } from "@/lib/data";
+import { formatNumber } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------- */
 /*  Shared bits                                                                */
@@ -513,16 +517,40 @@ export function ResourceConflictModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const [choice, setChoice] = React.useState("decaler");
-  const c = RESOURCE_CONFLICT;
+  const list = RESOURCE_CONFLICTS;
+  const [index, setIndex] = React.useState(0);
+  /** Une decision par personne : naviguer ne fait pas oublier ce qui est arbitre. */
+  const [choices, setChoices] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    if (!open) return;
+    setIndex(0);
+    setChoices({});
+  }, [open]);
+
+  if (list.length === 0) return null;
+
+  const c = list[Math.min(index, list.length - 1)];
+  const choice = choices[c.resource] ?? null;
+  const picked = c.solutions.find((s) => s.id === choice) ?? null;
+  const decided = Object.keys(choices).length;
+
+  const go = (step: 1 | -1) => setIndex((i) => (i + step + list.length) % list.length);
+
+  // Ce que la solution retenue change : calcule, jamais annonce d'avance.
+  const after = picked ? c.load - picked.relief : c.load;
+  const afterRatio = c.capacity > 0 ? Math.round((after / c.capacity) * 100) : 0;
+  const solved = picked ? after <= c.capacity : false;
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       width="max-w-5xl"
-      title="Conflit de ressources détecté"
-      subtitle="Analyser la surcharge et arbitrer les actions correctives"
+      title="Conflit de ressources detecte"
+      subtitle={`${list.length} personne${list.length > 1 ? "s" : ""} engagee${
+        list.length > 1 ? "s" : ""
+      } au-dela de sa capacite — arbitrer les actions correctives`}
       icon={
         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FEF3F2]">
           <AlertTriangle className="h-5 w-5 text-[#D92D20]" />
@@ -530,11 +558,73 @@ export function ResourceConflictModal({
       }
     >
       <div className="grid grid-cols-12 gap-3">
-        {/* Resource */}
+        {/* ------------------------------------------------- Navigation */}
+        <div className="col-span-12 flex items-center gap-2 rounded-lg border border-border bg-muted px-2 py-1.5">
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            disabled={list.length < 2}
+            aria-label="Personne precedente"
+            title="Personne precedente"
+            className="shrink-0 rounded-md border border-border bg-white p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          {/* Les personnes en conflit, atteignables aussi d'un clic direct. */}
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto scrollbar-thin">
+            {list.map((p, i) => {
+              const on = i === index;
+              const done = Boolean(choices[p.resource]);
+              return (
+                <button
+                  key={p.resource}
+                  type="button"
+                  onClick={() => setIndex(i)}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+                    on
+                      ? "border-[#D92D20] bg-white font-semibold text-[#B42318]"
+                      : "border-transparent text-muted-foreground hover:bg-white"
+                  }`}
+                >
+                  <span
+                    className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[8px] font-bold text-white"
+                    style={{ backgroundColor: p.color }}
+                  >
+                    {p.initials}
+                  </span>
+                  {p.resource}
+                  <span className="tabular-nums text-[10px] text-[#D92D20]">{p.ratio} %</span>
+                  {done ? <Check className="h-3 w-3 text-[#0E7C52]" /> : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <span className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground">
+            {index + 1} / {list.length}
+            {decided ? ` · ${decided} arbitre${decided > 1 ? "s" : ""}` : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => go(1)}
+            disabled={list.length < 2}
+            aria-label="Personne suivante"
+            title="Personne suivante"
+            className="shrink-0 rounded-md border border-border bg-white p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* ------------------------------------------------- Ressource */}
         <Card className="col-span-3 p-3.5">
           <p className="mb-2.5 text-[12px] font-semibold text-foreground">Ressource en surcharge</p>
           <div className="flex flex-col items-center text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E8FBF1] text-[16px] font-bold text-[#0E7C52]">
+            <span
+              className="flex h-14 w-14 items-center justify-center rounded-full text-[16px] font-bold text-white"
+              style={{ backgroundColor: c.color }}
+            >
               {c.initials}
             </span>
             <p className="mt-2 text-[13px] font-semibold text-foreground">{c.resource}</p>
@@ -543,68 +633,89 @@ export function ResourceConflictModal({
           <dl className="mt-3 space-y-2 border-t border-border pt-2.5 text-[11px]">
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-              <dt className="flex-1 text-muted-foreground">Capacité disponible</dt>
-              <dd className="font-semibold text-foreground">{c.capacity}</dd>
+              <dt className="flex-1 text-muted-foreground">Capacite</dt>
+              <dd className="font-semibold tabular-nums text-foreground">
+                {formatNumber(c.capacity)} h
+              </dd>
             </div>
             <div className="flex items-center gap-2">
               <LineChart className="h-3.5 w-3.5 text-muted-foreground" />
               <dt className="flex-1 text-muted-foreground">Charge actuelle</dt>
-              <dd className="font-semibold text-foreground">{c.load}</dd>
+              <dd className="font-semibold tabular-nums text-foreground">
+                {formatNumber(c.load)} h
+              </dd>
             </div>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-3.5 w-3.5 text-[#D92D20]" />
               <dt className="flex-1 text-muted-foreground">Taux de charge</dt>
-              <dd className="font-bold text-[#D92D20]">{c.rate}</dd>
+              <dd className="font-bold tabular-nums text-[#D92D20]">{c.ratio} %</dd>
+            </div>
+            <div className="flex items-center gap-2">
+              <TrendingDown className="h-3.5 w-3.5 text-[#D92D20]" />
+              <dt className="flex-1 text-muted-foreground">Deficit</dt>
+              <dd className="font-bold tabular-nums text-[#D92D20]">{c.deficit} h</dd>
             </div>
             <div className="flex items-start gap-2">
               <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <dt className="flex-1 text-muted-foreground">Période</dt>
+              <dt className="flex-1 text-muted-foreground">Periode</dt>
               <dd className="text-right font-semibold text-foreground">{c.period}</dd>
             </div>
           </dl>
         </Card>
 
-        {/* Tasks in conflict */}
+        {/* ------------------------------------------- Taches en conflit */}
         <Card className="col-span-5 p-3.5">
-          <p className="mb-2 text-[12px] font-semibold text-foreground">Tâches en conflit</p>
+          <p className="mb-2 text-[12px] font-semibold text-foreground">Taches en conflit</p>
           <table className="w-full text-[10px]">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="pb-1.5 pr-2 font-medium">Tâche / jalon</th>
+                <th className="pb-1.5 pr-2 font-medium">Tache / jalon</th>
                 <th className="pb-1.5 pr-2 font-medium">Charge (h)</th>
-                <th className="pb-1.5 pr-2 font-medium">Priorité</th>
+                <th className="pb-1.5 pr-2 font-medium">Priorite</th>
                 <th className="pb-1.5 pr-2 font-medium">Dates</th>
-                <th className="pb-1.5 font-medium">Conflit</th>
+                <th className="pb-1.5 font-medium">Part</th>
               </tr>
             </thead>
             <tbody>
-              {c.tasks.map((t) => (
-                <tr key={t.name} className="border-b border-border/60 last:border-0">
-                  <td className="py-2 pr-2 text-foreground">{t.name}</td>
-                  <td className="py-2 pr-2 tabular-nums text-foreground">{t.load}</td>
-                  <td className="py-2 pr-2">
-                    <span className="flex items-center gap-1 text-foreground">
-                      <AlertTriangle className="h-3 w-3" style={{ color: t.color }} />
-                      {t.priority}
-                    </span>
-                  </td>
-                  <td className="py-2 pr-2 tabular-nums text-muted-foreground">{t.dates}</td>
-                  <td className="py-2">
-                    <span className="flex items-center gap-1.5">
-                      <span className="font-semibold tabular-nums" style={{ color: t.color }}>
-                        {t.pct} %
+              {c.tasks.map((t) => {
+                // La part se calcule : elle ne peut pas contredire les heures.
+                const pct = Math.round((t.load / c.conflictLoad) * 100);
+                const color =
+                  t.priority === "Élevée"
+                    ? "#D92D20"
+                    : t.priority === "Moyenne"
+                      ? "#E58A00"
+                      : "#98A2B3";
+                return (
+                  <tr key={t.name} className="border-b border-border/60 last:border-0">
+                    <td className="py-2 pr-2 text-foreground">{t.name}</td>
+                    <td className="py-2 pr-2 tabular-nums text-foreground">{t.load} h</td>
+                    <td className="py-2 pr-2">
+                      <span className="flex items-center gap-1 text-foreground">
+                        <AlertTriangle className="h-3 w-3" style={{ color }} />
+                        {t.priority}
                       </span>
-                      <ProgressBar value={t.pct} color={t.color} className="w-12" />
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="py-2 pr-2 tabular-nums text-muted-foreground">{t.dates}</td>
+                    <td className="py-2">
+                      <span className="flex items-center gap-1.5">
+                        <span className="font-semibold tabular-nums" style={{ color }}>
+                          {pct} %
+                        </span>
+                        <ProgressBar value={pct} color={color} className="w-12" />
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#F8DEB0] bg-[#FEF6E7] px-2.5 py-1.5">
             <span className="text-[13px] font-bold text-[#E58A00]">Σ</span>
             <span className="flex-1 text-[11px] text-foreground">Total des charges en conflit</span>
-            <span className="text-[12px] font-bold text-[#D92D20]">{c.total}</span>
+            <span className="text-[12px] font-bold tabular-nums text-[#D92D20]">
+              {c.conflictLoad} h
+            </span>
           </div>
           <p className="mt-1.5 flex items-start gap-1.5 text-[10px] text-muted-foreground">
             <Info className="mt-px h-3 w-3 shrink-0 text-[#3976D3]" />
@@ -612,22 +723,24 @@ export function ResourceConflictModal({
           </p>
         </Card>
 
-        {/* Solutions */}
+        {/* ------------------------------------------ Solutions proposees */}
         <Card className="col-span-4 p-3.5">
-          <p className="mb-2 text-[12px] font-semibold text-foreground">Solutions proposées</p>
+          <p className="mb-2 text-[12px] font-semibold text-foreground">Solutions proposees</p>
           <div className="space-y-2">
             {c.solutions.map((s) => (
               <label
                 key={s.id}
                 className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2 transition-colors ${
-                  choice === s.id ? "border-[#16A46B] bg-[#F1FCF6]" : "border-transparent hover:bg-muted"
+                  choice === s.id
+                    ? "border-[#16A46B] bg-[#F1FCF6]"
+                    : "border-transparent hover:bg-muted"
                 }`}
               >
                 <input
                   type="radio"
-                  name="solution"
+                  name={`solution-${c.resource}`}
                   checked={choice === s.id}
-                  onChange={() => setChoice(s.id)}
+                  onChange={() => setChoices((m) => ({ ...m, [c.resource]: s.id }))}
                   className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[#0E7C52]"
                 />
                 <span className="min-w-0 flex-1">
@@ -639,11 +752,11 @@ export function ResourceConflictModal({
                     {s.label}
                   </span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
-                    {s.impact}
+                    {s.impact} Reprend {s.relief} h.
                   </span>
                   {s.recommended ? (
                     <Chip tone="green" className="mt-1">
-                      Recommandée
+                      Recommandee
                     </Chip>
                   ) : null}
                 </span>
@@ -651,34 +764,99 @@ export function ResourceConflictModal({
             ))}
           </div>
 
-          <div className="mt-2.5 space-y-1 rounded-lg bg-[#E8FBF1] p-2">
-            {c.outcome.map((o) => (
-              <div key={o.label} className="flex items-center gap-1.5 text-[10px]">
-                {o.label.includes("Impact") ? <Clock className="h-3 w-3 text-muted-foreground" /> : null}
-                {o.label.includes("Charge") ? <Gauge className="h-3 w-3 text-muted-foreground" /> : null}
-                {o.label.includes("Criticité") ? <AlertTriangle className="h-3 w-3 text-muted-foreground" /> : null}
-                <span className="flex-1 text-muted-foreground">{o.label}</span>
-                <span
-                  className={`font-semibold ${o.tone === "green" ? "text-[#2E7D32]" : "text-foreground"}`}
-                >
-                  {o.value}
-                </span>
-              </div>
-            ))}
+          {/* Le resultat decoule de la solution cochee : rien n'est ecrit d'avance. */}
+          <div
+            className={`mt-2.5 space-y-1 rounded-lg p-2 ${
+              picked ? (solved ? "bg-[#E8FBF1]" : "bg-[#FEF6E7]") : "bg-muted"
+            }`}
+          >
+            {picked ? (
+              <>
+                <OutcomeRow
+                  icon={<Gauge className="h-3 w-3 text-muted-foreground" />}
+                  label="Charge apres action"
+                  value={`${formatNumber(after)} h — ${afterRatio} %`}
+                  tone={solved ? "green" : "amber"}
+                />
+                <OutcomeRow
+                  icon={<AlertTriangle className="h-3 w-3 text-muted-foreground" />}
+                  label="Surcharge residuelle"
+                  value={solved ? "aucune" : `${after - c.capacity} h`}
+                  tone={solved ? "green" : "amber"}
+                />
+              </>
+            ) : (
+              <p className="text-[10px] text-muted-foreground">
+                Choisissez une solution pour voir son effet sur la charge.
+              </p>
+            )}
           </div>
         </Card>
 
-        <div className="col-span-12 flex justify-end gap-2.5">
+        {/* ------------------------------------------------------ Actions */}
+        <div className="col-span-12 flex items-center gap-2.5">
+          <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+            {decided === list.length
+              ? "Toutes les surcharges sont arbitrees."
+              : `${list.length - decided} personne${
+                  list.length - decided > 1 ? "s" : ""
+                } encore sans decision.`}
+          </p>
           <Button variant="ghost" className="border-border" onClick={onClose}>
             Annuler
           </Button>
-          <Button variant="primary" onClick={onClose}>
-            Appliquer la solution
+          {/* Tant qu'il reste quelqu'un a arbitrer, on propose d'y aller. */}
+          {decided < list.length ? (
+            <Button
+              disabled={!picked}
+              title={!picked ? "Choisissez d'abord une solution" : undefined}
+              onClick={() => {
+                const next = list.findIndex((p) => !choices[p.resource]);
+                if (next >= 0) setIndex(next);
+              }}
+            >
+              Suivante a arbitrer
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          ) : null}
+          <Button
+            variant="primary"
+            disabled={decided === 0}
+            title={decided === 0 ? "Aucune decision a appliquer" : undefined}
+            onClick={onClose}
+          >
+            Appliquer {decided > 1 ? `les ${decided} decisions` : "la decision"}
           </Button>
         </div>
-
       </div>
     </Modal>
+  );
+}
+
+/** Ligne du bloc de resultat, sous les solutions. */
+function OutcomeRow({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone: "green" | "amber";
+}) {
+  return (
+    <div className="flex items-center gap-1.5 text-[10px]">
+      {icon}
+      <span className="flex-1 text-muted-foreground">{label}</span>
+      <span
+        className={`font-semibold tabular-nums ${
+          tone === "green" ? "text-[#2E7D32]" : "text-[#B45F09]"
+        }`}
+      >
+        {value}
+      </span>
+    </div>
   );
 }
 

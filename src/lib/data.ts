@@ -2002,33 +2002,110 @@ export const EQUIPMENT_CONFLICTS = [
   },
 ];
 
-export const RESOURCE_CONFLICT = {
-  resource: "Noura Trabelsi",
-  fn: "Qualité",
-  initials: "NT",
-  capacity: "140 h",
-  load: "176 h",
-  rate: "126 %",
-  period: "S03 à S05 — Janvier 2027",
-  tasks: [
-    { name: "T09 — Réaliser PFMEA process", load: "80 h", priority: "Élevée", dates: "S03–S04 11–24/01/2027", pct: 57, color: "#D92D20" },
-    { name: "T10 — Élaborer plan de contrôle pré-lancement", load: "64 h", priority: "Moyenne", dates: "S04–S05 25/01–07/02/2027", pct: 46, color: "#E58A00" },
-    { name: "Revue intermédiaire PFMEA", load: "32 h", priority: "Moyenne", dates: "S05 01–07/02/2027", pct: 23, color: "#98A2B3" },
-  ],
-  total: "176 h (126 %)",
-  note: "La charge dépasse la capacité de 36 h sur la période S03 à S05.",
-  solutions: [
-    { id: "decaler", label: "Décaler T10 de 3 jours", impact: "Impact : soulage la charge sur S04–S05.", recommended: true, icon: "calendar" },
-    { id: "ajouter", label: "Affecter une ressource supplémentaire", impact: "Impact : réduit la surcharge de 36 h.", icon: "user" },
-    { id: "reduire", label: "Réduire la charge de T09", impact: "Impact : diminue la charge de 16 h.", icon: "down" },
-    { id: "auto", label: "Répartition automatique", impact: "Impact : optimise automatiquement la répartition des tâches.", icon: "refresh" },
-  ],
-  outcome: [
-    { label: "Impact sur G3", value: "+0 j", tone: "ink" as const },
-    { label: "Charge / capacité après action", value: "98 %", tone: "green" as const },
-    { label: "Criticité résiduelle", value: "Faible", tone: "green" as const },
-  ],
+export interface ConflictTask {
+  name: string;
+  load: number;
+  priority: "Élevée" | "Moyenne" | "Basse";
+  dates: string;
+}
+
+export interface ConflictSolution {
+  id: string;
+  label: string;
+  impact: string;
+  icon: "calendar" | "user" | "down" | "refresh";
+  recommended?: boolean;
+  /** Heures reprises à la personne si la solution est retenue. */
+  relief: number;
+}
+
+/**
+ * Un conflit par personne engagée au-delà de sa capacité — le même seuil que
+ * celui qui la peint en rouge partout ailleurs. Les heures ne sont pas
+ * ressaisies : capacité, charge, taux et déficit viennent de l'annuaire, si
+ * bien que la fenêtre d'arbitrage ne peut pas annoncer autre chose que les
+ * tableaux qui l'ont déclenchée.
+ */
+const CONFLICT_DETAIL: Record<
+  string,
+  { period: string; tasks: ConflictTask[]; solutions: ConflictSolution[] }
+> = {
+  "Noura Trabelsi": {
+    period: "S03 à S05 — Janvier 2027",
+    tasks: [
+      { name: "T09 — Réaliser PFMEA process", load: 80, priority: "Élevée", dates: "S03–S04 11–24/01/2027" },
+      { name: "T10 — Élaborer plan de contrôle pré-lancement", load: 64, priority: "Moyenne", dates: "S04–S05 25/01–07/02/2027" },
+      { name: "Revue intermédiaire PFMEA", load: 32, priority: "Moyenne", dates: "S05 01–07/02/2027" },
+    ],
+    solutions: [
+      { id: "decaler", label: "Décaler T10 de 3 jours", impact: "Soulage la charge sur S04–S05.", icon: "calendar", recommended: true, relief: 64 },
+      { id: "ajouter", label: "Affecter une ressource supplémentaire", impact: "Reprend la revue intermédiaire.", icon: "user", relief: 32 },
+      { id: "reduire", label: "Réduire la charge de T09", impact: "Ramène T09 à 64 h.", icon: "down", relief: 16 },
+      { id: "auto", label: "Répartition automatique", impact: "Lisse la charge sur les semaines voisines.", icon: "refresh", relief: 60 },
+    ],
+  },
+  "Rachid Ben Amar": {
+    period: "S05 à S09 — Février 2027",
+    tasks: [
+      { name: "T14 — Réaliser MSA et capabilité", load: 120, priority: "Élevée", dates: "S05–S07 01–21/02/2027" },
+      { name: "Audit process P-DEMO-005", load: 96, priority: "Élevée", dates: "S07–S08 22/02–07/03/2027" },
+      { name: "Traitement des non-conformités", load: 48, priority: "Moyenne", dates: "S09 08–14/03/2027" },
+    ],
+    /*
+     * Le déficit de Rachid est de 140 h : aucune action isolée ne le couvre.
+     * La solution recommandée en combine deux — une recommandation qui
+     * laisserait la personne en rouge ne recommanderait rien.
+     */
+    solutions: [
+      { id: "combine", label: "Transférer l'audit et décaler les non-conformités", impact: "Confie l'audit à Sofiane Haddad et repousse les NC d'une semaine.", icon: "user", recommended: true, relief: 144 },
+      { id: "transfert", label: "Transférer l'audit P-DEMO-005", impact: "Confie l'audit à Sofiane Haddad.", icon: "user", relief: 96 },
+      { id: "decaler", label: "Décaler les non-conformités d'une semaine", impact: "Repousse les NC hors de la fenêtre.", icon: "calendar", relief: 48 },
+      { id: "auto", label: "Répartition automatique", impact: "Lisse la charge sur l'équipe Qualité.", icon: "refresh", relief: 140 },
+    ],
+  },
 };
+
+export interface ResourceConflict {
+  resource: string;
+  fn: string;
+  initials: string;
+  color: string;
+  /** Heures, reprises telles quelles de l'annuaire. */
+  capacity: number;
+  load: number;
+  ratio: number;
+  deficit: number;
+  period: string;
+  tasks: ConflictTask[];
+  conflictLoad: number;
+  note: string;
+  solutions: ConflictSolution[];
+}
+
+/** Les personnes engagées au-delà de leur capacité, dans l'ordre du déficit. */
+export const RESOURCE_CONFLICTS: ResourceConflict[] = PEOPLE_LOAD.filter(
+  (p) => loadLevel(personRatio(p)) === "surcharge" && CONFLICT_DETAIL[p.name],
+)
+  .map((p) => {
+    const d = CONFLICT_DETAIL[p.name];
+    const deficit = -personAvailable(p);
+    return {
+      resource: p.name,
+      fn: p.fn,
+      initials: p.initials,
+      color: p.color,
+      capacity: p.capacity,
+      load: p.load,
+      ratio: personRatio(p),
+      deficit,
+      period: d.period,
+      tasks: d.tasks,
+      conflictLoad: d.tasks.reduce((n, t) => n + t.load, 0),
+      note: `La charge dépasse la capacité de ${deficit} h sur la période ${d.period}.`,
+      solutions: d.solutions,
+    };
+  })
+  .sort((a, b) => b.deficit - a.deficit);
 
 /* ---------------------------- Simulation replanif ------------------------- */
 
